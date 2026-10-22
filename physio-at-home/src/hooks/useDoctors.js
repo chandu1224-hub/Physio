@@ -37,7 +37,10 @@ export function useDoctors(fallback = []) {
     let active = true;
     const load = async () => {
       try {
-        const { data, error: queryError } = await supabase.from("physiotherapists").select("*");
+        const { data, error: queryError } = await supabase.from("physiotherapists")
+          .select("id,name,initials,title,degree,experience_years,specialties,conditions,services,service_areas,languages,bio,price,availability,rating,reviews,emoji,color,photo_path,gallery_paths,display_order,featured,status,service_location,service_lat,service_lng,service_radius_km")
+          .eq("status", "published")
+          .order("display_order", { ascending: true });
         if (!active) return;
         if (queryError) throw queryError;
         const visible = (data || []).filter((r) => r.is_active !== false && r.active !== false && r.published !== false);
