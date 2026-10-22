@@ -48,20 +48,44 @@ export function normalizeDoctor(row, i) {
 
 // Returns doctors from Supabase; falls back to the built-in sample list on error or empty table.
 export function useDoctors(fallback) {
-  const [doctors, setDoctors] = useState(fallback);
+  const [doctors, setDoctors] = useState(import.meta.env.DEV ? fallback : []);
   const [source, setSource] = useState("fallback");
+  const [status, setStatus] = useState("loading");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     let active = true;
     supabase.from("physiotherapists").select("*").then(({ data, error }) => {
-      if (!active || error || !data || data.length === 0) return;
+      if (!active) return;
+      if (error) {
+        setErrorMessage("We could not load physiotherapist profiles. Please try again shortly or contact our team.");
+        setStatus("error");
+        if (!import.meta.env.DEV) setDoctors([]);
+        return;
+      }
+      if (!data || data.length === 0) {
+        setDoctors([]);
+        setStatus("empty");
+        return;
+      }
       const visible = data.filter((r) => r.is_active !== false && r.active !== false && r.published !== false);
-      if (visible.length === 0) return;
+      if (visible.length === 0) {
+        setDoctors([]);
+        setStatus("empty");
+        return;
+      }
       setDoctors(visible.map(normalizeDoctor));
       setSource("supabase");
+      setStatus("ready");
+      setErrorMessage("");
+    }).catch(() => {
+      if (!active) return;
+      setErrorMessage("We could not load physiotherapist profiles. Please try again shortly or contact our team.");
+      setStatus("error");
+      if (!import.meta.env.DEV) setDoctors([]);
     });
     return () => { active = false; };
   }, []);
 
-  return { doctors, source };
+  return { doctors, source, status, error: errorMessage };
 }
