@@ -81,7 +81,7 @@ function JoinTherapist({ onBack }) {
   );
 }
 function App(){
- const { doctors } = useDoctors(fallbackDoctors);
+ const { doctors, status: doctorsStatus, error: doctorsError } = useDoctors(fallbackDoctors);
  const [splash,setSplash]=useState(true); const [menuOpen,setMenuOpen]=useState(false); const [query,setQuery]=useState(''); const [condition,setCondition]=useState(''); const [care,setCare]=useState('Home visit'); const [location,setLocation]=useState(''); const [searching,setSearching]=useState(false); const [results,setResults]=useState(false); const [selected,setSelected]=useState(null); const [booking,setBooking]=useState(null); const [faqOpen,setFaqOpen]=useState(0); const [toast,setToast]=useState(''); const [page,setPage]=useState('home');
  useEffect(()=>{const t=setTimeout(()=>setSplash(false),1500);return()=>clearTimeout(t)},[]);
  useEffect(()=>{if(searching){const t=setTimeout(()=>{setSearching(false);setResults(true);document.getElementById('results')?.scrollIntoView({behavior:'smooth',block:'start'})},2600); return()=>clearTimeout(t)}},[searching]);
