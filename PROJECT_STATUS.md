@@ -50,3 +50,6 @@
 - Updated `physio-at-home/src/main.jsx` to display a non-sensitive error/empty-state message when the provider query fails or returns no profiles.
 - Important limitation: this is a source-level change only. A local build and browser regression test have not yet been run, so do not deploy until they pass.
 - Remaining high-priority items: replace placeholder CSP host with the actual Supabase project host; avoid `select("*")` for public provider data; establish a verified/published schema and enforce it with RLS; implement a typed admin form; integrate 10 km geospatial matching into the canonical app; pin dependencies and verify lockfile consistency.
+
+- Pinned previously floating `latest` dependencies for React, React DOM, Vite, and the Vite React plugin to the versions already resolved in the committed npm lockfile (`19.3.1`, `19.3.1`, `8.3.4`, `6.1.2`) and aligned the lockfile root metadata. Must verify with `npm ci` and `npm run build` locally/CI.
+- The provider error/empty message UI was wired into the canonical app. Build/runtime verification is still pending.
