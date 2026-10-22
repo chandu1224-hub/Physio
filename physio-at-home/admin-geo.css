@@ -1,0 +1,8 @@
+.ad-geo{border:1px solid rgba(127,127,127,.35);border-radius:12px;padding:14px;margin-bottom:16px;display:flex;flex-direction:column;gap:10px}
+.ad-geo .ls-box input{padding:10px 0}
+.ad-geo-ok{margin:0;font-size:14px}
+.ad-geo-ok small{opacity:.7}
+.ad-geo-warn{margin:0;font-size:13px;color:#b9770e}
+.ad-geo-manual{font-size:14px}
+.ad-geo-manual summary{cursor:pointer;opacity:.85;margin-bottom:8px}
+.ad-geo-manual label{display:block;margin-top:8px}

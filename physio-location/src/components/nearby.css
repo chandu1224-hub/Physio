@@ -1,0 +1,51 @@
+:root { --nf-accent: #0f766e; --nf-ink: #1c2b2a; --nf-line: #dbe5e3; }
+
+/* Location search box */
+.ps-box { position: relative; width: 100%; }
+.ps-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #5d6f6d; pointer-events: none; }
+.ps-input { width: 100%; box-sizing: border-box; padding: 12px 14px 12px 36px; border: 1px solid var(--nf-line); border-radius: 12px; font: inherit; font-size: 15px; background: #fff; color: var(--nf-ink); }
+.ps-input:focus-visible { outline: 2px solid var(--nf-accent); outline-offset: 1px; }
+.ps-list { position: absolute; z-index: 60; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none; background: #fff; border: 1px solid var(--nf-line); border-radius: 12px; box-shadow: 0 12px 32px rgba(15, 30, 28, .16); max-height: 260px; overflow-y: auto; text-align: left; }
+.ps-item { display: block; width: 100%; text-align: left; padding: 10px 12px; border: 0; background: transparent; border-radius: 8px; font: inherit; font-size: 14px; color: var(--nf-ink); cursor: pointer; }
+.ps-item:hover, .ps-item:focus-visible { background: #eef5f3; outline: none; }
+.ps-note { padding: 10px 12px; font-size: 14px; color: #5d6f6d; }
+
+/* Hero box */
+.nf-hero { min-width: 260px; flex: 1 1 260px; max-width: 360px; }
+
+/* Finder modal */
+.nf-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(15, 30, 28, .5); display: grid; place-items: center; padding: 16px; }
+.nf-sheet { background: #fff; color: var(--nf-ink); width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; border-radius: 18px; padding: 22px; font-family: inherit; }
+.nf-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
+.nf-head h2 { margin: 0 0 4px; font-size: 1.35rem; line-height: 1.25; }
+.nf-sub { margin: 0; color: #5d6f6d; font-size: .95rem; }
+.nf-bad { color: #b42318; }
+.nf-x { border: 0; background: #eef3f2; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: grid; place-items: center; flex: none; color: inherit; }
+.nf-busy { display: grid; justify-items: center; gap: 10px; padding: 36px 0; color: #5d6f6d; text-align: center; }
+.nf-spin { animation: nfspin 1s linear infinite; color: var(--nf-accent); }
+@keyframes nfspin { to { transform: rotate(360deg); } }
+.nf-list { display: grid; gap: 12px; margin-bottom: 18px; }
+.nf-card { border: 1px solid var(--nf-line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
+.nf-card-top { display: flex; align-items: center; gap: 12px; }
+.nf-avatar { width: 44px; height: 44px; border-radius: 50%; background: #dff1ee; color: var(--nf-accent); display: grid; place-items: center; font-weight: 700; flex: none; }
+.nf-card-main { flex: 1; min-width: 0; }
+.nf-card-main h3 { margin: 0; font-size: 1.05rem; }
+.nf-card-main p { margin: 2px 0 0; font-size: .88rem; color: #5d6f6d; }
+.nf-dist { display: inline-flex; align-items: center; gap: 4px; font-size: .82rem; background: #eef5f3; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+.nf-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .88rem; color: #3a4d4b; }
+.nf-meta span { display: inline-flex; align-items: center; gap: 5px; }
+.nf-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.nf-tags span { font-size: .8rem; padding: 4px 10px; border-radius: 999px; background: #f2f5f4; }
+.nf-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 16px; border-radius: 10px; background: var(--nf-accent); color: #fff; text-decoration: none; font-weight: 600; font-size: .95rem; }
+.nf-btn:hover { background: #0b5f58; }
+.nf-search { display: grid; gap: 8px; border-top: 1px solid #edf2f1; padding-top: 16px; }
+.nf-search label { font-size: .9rem; font-weight: 600; }
+.nf-link { justify-self: start; border: 0; background: none; color: var(--nf-accent); font: inherit; font-size: .9rem; cursor: pointer; padding: 2px 0; text-decoration: underline; }
+.nf-x:focus-visible, .nf-btn:focus-visible, .nf-link:focus-visible { outline: 2px solid var(--nf-accent); outline-offset: 2px; }
+
+/* Admin location block */
+.ad-loc { border: 1px solid var(--nf-line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; background: #f8fbfa; }
+.ad-loc-title { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.ad-loc-meta { margin: 0; font-size: .85rem; color: #3a4d4b; }
+.ad-loc-meta a { color: var(--nf-accent); }
+.ad-loc-warn { margin: 0; font-size: .85rem; color: #8a5a00; background: #fff4d6; padding: 8px 10px; border-radius: 8px; }

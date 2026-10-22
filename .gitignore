@@ -1,0 +1,16 @@
+node_modules
+dist
+dist-ssr
+.env
+.env.local
+*.local
+*.zip
+*.bak
+*.log
+.vscode/*
+.idea
+.DS_Store
+Microsoft.Services.Store.winmd
+WidgetSpark*
+/package-lock.json 
+*.exe
