@@ -53,3 +53,10 @@
 
 - Pinned previously floating `latest` dependencies for React, React DOM, Vite, and the Vite React plugin to the versions already resolved in the committed npm lockfile (`19.3.1`, `19.3.1`, `8.3.4`, `6.1.2`) and aligned the lockfile root metadata. Must verify with `npm ci` and `npm run build` locally/CI.
 - The provider error/empty message UI was wired into the canonical app. Build/runtime verification is still pending.
+
+## Security and booking-flow review — 2026-10-23
+- Inspected the canonical booking handler in `physio-at-home/src/main.jsx`: it creates a WhatsApp message and opens `wa.me`; it does not insert into `booking_requests`. The UI correctly states that users must send the WhatsApp message and await confirmation. Before changing database grants, search all deployed source paths for any other `booking_requests` usage.
+- Updated `physio-at-home/src/hooks/useDoctors.js` to request an explicit public-facing column allowlist rather than `select("*")`, filter rows to `status = 'published'`, and order by `display_order`. This prevents the public listing query from returning non-public columns such as `contact_info` and `full_bio` if the supplied production schema is accurate.
+- Updated the Netlify Content-Security-Policy to use `https://*.supabase.co` and `wss://*.supabase.co` rather than the literal `YOUR-PROJECT.supabase.co` placeholder. This is a compatibility fallback, not the tightest possible allowlist; replace it with the exact project host once confirmed from the Supabase project URL.
+- Supabase documentation confirms grants and RLS are separate controls; adding policies does not revoke table grants. Keep database changes staged until RLS-enabled status and all application use paths are verified.
+- These are source/config commits on `work/production-readiness` only. No production deployment or live database changes were made. Build, browser, and database policy tests remain unrun.
