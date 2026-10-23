@@ -91,8 +91,8 @@ function Editor({ table, columns, row, onClose, onSaved }) {
   const isNew = !row;
   const [values, setValues] = useState(() => {
     const v = {};
+    const tableTemplate = EMPTY_BY_TABLE[table] || EMPTY_PROFILE;
     columns.forEach((c) => {
-      const tableTemplate = EMPTY_BY_TABLE[table] || EMPTY_PROFILE;
       const template = Object.prototype.hasOwnProperty.call(tableTemplate, c) ? tableTemplate[c] : "";
       v[c] = row ? row[c] : template;
     });
@@ -147,8 +147,9 @@ function Editor({ table, columns, row, onClose, onSaved }) {
       try { payload = JSON.parse(raw); } catch { setBusy(false); return setErr("Enter valid JSON."); }
     } else {
       payload = {};
+      const tableTemplate = EMPTY_BY_TABLE[table] || EMPTY_PROFILE;
       columns.forEach((c) => {
-        const original = row ? row[c] : EMPTY_PROFILE[c];
+        const original = row ? row[c] : tableTemplate[c];
         payload[c] = fromInput(original, values[c], c);
       });
       if (table === "physiotherapists" && isNew) {
