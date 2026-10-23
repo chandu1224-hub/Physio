@@ -108,7 +108,7 @@ function App(){
       return;
     }
     try {
-      const { data, error } = await supabase.rpc('physios_near', { user_lat: lat, user_lng: lng });
+      const { data, error } = await supabase.rpc('physios_near', { p_lat: lat, p_lng: lng });
       if (id !== runId.current) return;
       if (error) throw error;
       const rows = Array.isArray(data) ? data : [];
