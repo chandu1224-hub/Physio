@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
 const COLORS = ["peach", "blue", "lilac", "sage", "rose"];
 const EMOJIS = ["👩🏻‍⚕️", "👨🏽‍⚕️", "👩🏽‍⚕️", "👨🏻‍⚕️", "👩🏼‍⚕️"];
@@ -36,6 +36,13 @@ export function useDoctors(fallback = []) {
   useEffect(() => {
     let active = true;
     const load = async () => {
+      if (!isSupabaseConfigured || !supabase) {
+        if (!active) return;
+        setError("Physiotherapist profiles are temporarily unavailable because the service is not configured.");
+        setStatus("error");
+        if (!import.meta.env.DEV) setDoctors([]);
+        return;
+      }
       try {
         const { data, error: queryError } = await supabase.from("physiotherapists")
           .select("id,name,initials,title,degree,experience_years,specialties,conditions,services,service_areas,languages,bio,price,availability,rating,reviews,emoji,color,photo_path,gallery_paths,display_order,featured,status,service_location,service_lat,service_lng,service_radius_km")
