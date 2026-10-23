@@ -122,3 +122,9 @@
 - Updated `physio-at-home/supabase/review-only-nearby-search.sql` to return only provider IDs and rounded distances, matching that frontend contract. It validates coordinates, filters to published profiles with saved coordinates, applies each provider's configured radius (10 km default), and keeps a fixed `pg_catalog` search path.
 - This change only updates a review-only SQL file in GitHub. It has not been run against staging or production. CI is running for this commit; verify the latest Actions result before treating it as build-verified.
 - Remaining runtime dependency: provider coordinates must be accurate and present, and the live RPC signature/definition and grants must be verified from the read-only Supabase audit before enabling the feature.
+
+
+## Booking form validation follow-up — 2026-10-23
+- Added browser-side name length checks and autocomplete hints, capped phone input at 20 characters, and aligned the phone pattern with the known database constraint. The address input now has a maximum length.
+- This improves feedback before the booking insert, but it is not a substitute for database constraints, anti-spam/rate limiting, or server-side validation. The booking persistence and WhatsApp handoff still need end-to-end staging tests.
+- Latest admin JSON validation and table-specific form field fixes are committed on `work/production-readiness`; CI for the most recent booking form commit must be checked before claiming that exact commit is build-verified.
