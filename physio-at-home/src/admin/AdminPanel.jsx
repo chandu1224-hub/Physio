@@ -250,13 +250,14 @@ function Editor({ table, columns, row, onClose, onSaved }) {
                     <input type="number" step="any" value={toInput(values.service_lng)} onChange={(e) => setValues({ ...values, service_lng: e.target.value })} placeholder="77.5946" />
                   </label>
                   <label>Service radius (km)
-                    <input type="number" min="1" max="100" step="1" value={toInput(values.service_radius_km)} onChange={(e) => setValues({ ...values, service_radius_km: e.target.value })} />
+                    <input type="number" min="1" max="50" step="1" value={toInput(values.service_radius_km)} onChange={(e) => setValues({ ...values, service_radius_km: e.target.value })} />
                   </label>
                 </div>
                 <p className="ad-muted">Only save verified provider locations for real profiles. Demo coordinates must remain test-only and must not be treated as a real clinic address.</p>
               </section>}
               {columns.filter((c) => !["service_location", "service_lat", "service_lng", "service_radius_km"].includes(c)).map((c) => {
-            const orig = row ? row[c] : EMPTY_PROFILE[c];
+            const tableTemplate = EMPTY_BY_TABLE[table] || EMPTY_PROFILE;
+                const orig = row ? row[c] : tableTemplate[c];
             if (typeof orig === "boolean") {
               return (
                 <label key={c} className="ad-check">
