@@ -6,7 +6,7 @@ Scope: source review of `physio-at-home/` and the separate `physio-location/` im
 ## Confirmed application behavior
 
 - Canonical Netlify publish root: `physio-at-home/`.
-- The booking handler in `physio-at-home/src/main.jsx` formats the request into a WhatsApp URL and opens WhatsApp. It does not write to `public.booking_requests`.
+- The current booking handler in `physio-at-home/src/main.jsx` inserts a new request into `public.booking_requests` after consent, then opens WhatsApp. This needs end-to-end staging validation and narrowly scoped public INSERT permissions with RLS.
 - The canonical admin panel currently manages `physiotherapists` only. It performs insert/update/delete operations after sign-in and checks whether the signed-in user has a row in `public.admins`. Database RLS must enforce this independently.
 - The canonical public provider hook now requests a named list of public-facing columns and filters `status = 'published'`. The public-facing list deliberately excludes `contact_info` and `full_bio`.
 - The separate `physio-location/sql/setup.sql` function `public.physios_near` currently aggregates `to_jsonb(t)` from a query selecting `p.*`. If deployed, this can return every column from the provider row to callers with execute permission, including fields not intended for public display. It also uses `latitude`/`longitude`/ `published` conventions that do not match the production schema supplied for the canonical app (`service_lat`/`service_lng`/`status`). Do not run that setup script against production as-is.
