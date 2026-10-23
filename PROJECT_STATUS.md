@@ -76,7 +76,7 @@
 - Production Supabase grants and RLS policies remain unsafe/incompletely verified based on the dashboard outputs supplied by the user. The existing permissive `using (true)` provider policy may expose unpublished rows and private columns to direct table queries; application-side field allowlists do not fix database access.
 - The canonical nearby-search UI now requests browser geolocation or accepts a typed area/address, geocodes typed locations through Photon, and calls the `physios_near` RPC. It no longer pretends sample doctors are nearby. This is not production-ready until the RPC is reviewed/deployed in staging and the providers have verified coordinates. The separate `physio-location/` SQL is incompatible with the production schema and must not be run as-is.
 - The five existing provider rows have no verified service coordinates. Do not invent locations or claim these clinicians are verified.
-- Booking currently opens WhatsApp and does not persist to `booking_requests`.
+- Booking now attempts to persist to `booking_requests` before handing off to WhatsApp; staging integration and policy validation are still required.
 - No staging RLS tests, browser regression suite, production SQL execution, merge, or deployment has been performed.
 
 ### Next safe sequence
