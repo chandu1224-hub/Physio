@@ -216,7 +216,7 @@ function Editor({ table, columns, row, onClose, onSaved }) {
             </label>
           ) : (
             <>
-              <section className="ad-location-panel">
+              {table === "physiotherapists" && <section className="ad-location-panel">
                 <h3>Service location</h3>
                 <p>Set the physiotherapist’s service base. For this test rollout, use Bengaluru, Karnataka. Nearby search uses the saved coordinates and service radius.</p>
                 <label>Address or area
@@ -236,7 +236,7 @@ function Editor({ table, columns, row, onClose, onSaved }) {
                   </label>
                 </div>
                 <p className="ad-muted">Only save verified provider locations for real profiles. Demo coordinates must remain test-only and must not be treated as a real clinic address.</p>
-              </section>
+              </section>}
               {columns.filter((c) => !["service_location", "service_lat", "service_lng", "service_radius_km"].includes(c)).map((c) => {
             const orig = row ? row[c] : EMPTY_PROFILE[c];
             if (typeof orig === "boolean") {
