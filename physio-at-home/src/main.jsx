@@ -29,14 +29,21 @@ function JoinTherapist({ onBack }) {
 
   const update = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.phone.trim() || !form.qualification.trim() || !form.city.trim()) {
       setError('Please fill in name, phone, qualification and city.');
       return;
     }
+    if (!e.currentTarget.elements.namedItem('applicationConsent')?.checked) {
+      setError('Please consent to storing your details so we can review your application.');
+      return;
+    }
+    if (!isSupabaseConfigured || !supabase) {
+      setError('Applications are temporarily unavailable. Please contact our team directly.');
+      return;
+    }
     setError('');
-
     const message =
 `*New Physiotherapist Application*
 
@@ -49,10 +56,25 @@ function JoinTherapist({ onBack }) {
 *City / Clinic:* ${form.city}
 *Registration No:* ${form.regNo || '-'}
 *About:* ${form.about || '-'}`;
-
-    window.open(`https://wa.me/${FOUNDER_WHATSAPP}?text=${encodeURIComponent(message)}`, '_blank');
+    const waWindow = window.open('about:blank', '_blank');
+    try {
+      const { error: insertError } = await supabase.from('therapist_applications').insert({
+        name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() || null,
+        qualification: form.qualification.trim(),
+        experience_years: form.experience === '' ? null : Number(form.experience),
+        specialties: form.specialties.trim() || null, city: form.city.trim(),
+        reg_no: form.regNo.trim() || null, about: form.about.trim() || null,
+        consent: true, status: 'new'
+      });
+      if (insertError) throw insertError;
+      if (waWindow) waWindow.location.href = `https://wa.me/${FOUNDER_WHATSAPP}?text=${encodeURIComponent(message)}`;
+      setError('Application saved. Send the WhatsApp message if you would also like to contact the team immediately.');
+    } catch (error) {
+      if (waWindow) waWindow.close();
+      setError('We could not save your application. Please try again later.');
+      console.error('Therapist application submission failed:', error?.message);
+    }
   };
-
   const field = { width: '100%', padding: 10, marginBottom: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 16, boxSizing: 'border-box' };
 
   return (
@@ -72,10 +94,11 @@ function JoinTherapist({ onBack }) {
         <input style={field} name="regNo" placeholder="Registration / license number" value={form.regNo} onChange={update} />
         <textarea style={{ ...field, minHeight: 90 }} name="about" placeholder="Tell us about yourself" value={form.about} onChange={update} />
 
-        {error && <p style={{ color: 'crimson' }}>{error}</p>}
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, margin: '8px 0 14px', fontSize: 14 }}><input type="checkbox" name="applicationConsent" required style={{ marginTop: 4 }} /> I agree that Physio at Home may store and review my application details to contact me about opportunities.</label>
+        {error && <p style={{ color: error.startsWith('Application saved') ? 'green' : 'crimson' }} role="status">{error}</p>}
 
         <button type="submit" style={{ width: '100%', padding: 12, borderRadius: 8, background: '#25D366', color: '#fff', border: 'none', fontSize: 16, cursor: 'pointer' }}>
-          Submit via WhatsApp
+          Save application & continue to WhatsApp
         </button>
       </form>
     </div>
@@ -182,7 +205,7 @@ function App(){
   const filtered=useMemo(()=>doctors.filter(d=>{const text=(query+' '+condition).toLowerCase();return !text||d.name.toLowerCase().includes(text)||d.title.toLowerCase().includes(text)||d.specialties.join(' ').toLowerCase().includes(text)||['back pain','neck pain','knee pain','physio','physiotherapist','sports','senior care','shoulder'].some(x=>text.includes(x)&& (d.specialties.join(' ').toLowerCase().includes(x)||d.title.toLowerCase().includes(x)))}),[query,condition,doctors]);
  const startSearch=()=>{setResults(false);setSearching(true)};
  const book=(doc)=>{setBooking(doc);setSelected(null)};
- const submitBooking=(e)=>{e.preventDefault();const f=new FormData(e.currentTarget);const msg=`Hi Physio at Home! I'd like to request a ${care.toLowerCase()} appointment.\nPhysiotherapist: ${booking?.name||'Please suggest a nearby physiotherapist'}\nName: ${f.get('name')}\nPhone: ${f.get('phone')}\nArea/address: ${f.get('address')}\nCondition: ${f.get('concern')}\nPreferred date: ${f.get('date')}\nPreferred time: ${f.get('time')}`;window.open(waLink(msg),'_blank','noopener,noreferrer');setBooking(null);setToast('Your request is ready in WhatsApp. Send it to confirm with our team.');setTimeout(()=>setToast(''),5000)};
+ const submitBooking=async(e)=>{e.preventDefault();const f=new FormData(e.currentTarget);if(f.get('consent')!=='on'){setToast('Please consent to storing your details so we can process your request.');return}const msg=`Hi Physio at Home! I'd like to request a ${care.toLowerCase()} appointment.\nPhysiotherapist: ${booking?.name||'Please suggest a nearby physiotherapist'}\nName: ${f.get('name')}\nPhone: ${f.get('phone')}\nArea/address: ${f.get('address')}\nCondition: ${f.get('concern')}\nPreferred date: ${f.get('date')}\nPreferred time: ${f.get('time')}`;const waWindow=window.open('about:blank','_blank');if(!isSupabaseConfigured||!supabase){if(waWindow)waWindow.close();setToast('Booking is temporarily unavailable. Please contact our team directly.');return}try{const {error}=await supabase.from('booking_requests').insert({name:String(f.get('name')).trim(),phone:String(f.get('phone')).trim(),area:String(f.get('address')).trim(),condition:String(f.get('concern')||''),care_type:care,preferred_time:String(f.get('date')+' · '+f.get('time')),notes:'Submitted via website. Appointment is not confirmed until the team replies.',physio_id:booking?.id?String(booking.id):null,consent:true,status:'new'});if(error)throw error;if(waWindow)waWindow.location.href=waLink(msg);setBooking(null);setToast('Your request has been saved. Send the WhatsApp message to coordinate with our team.')}catch(error){if(waWindow)waWindow.close();setToast('We could not save your request. Please try again or contact our team.');console.error('Booking submission failed:',error?.message)}setTimeout(()=>setToast(''),6000)};
  if (page === 'join') return <JoinTherapist onBack={() => setPage('home')} />;
  return <>
  {doctorsStatus === "error" && <div role="status" className="wrap" style={{padding:"12px 20px",color:"var(--muted)"}}>{doctorsError}</div>}
@@ -243,7 +266,7 @@ function App(){
  <a className="whatsapp-float" href={waLink()} target="_blank" rel="noreferrer" aria-label="Chat on WhatsApp"><MessageCircle size={24}/><span>Chat with us</span></a>
  {toast&&<div className="toast"><Check size={17}/>{toast}<button onClick={()=>setToast('')} aria-label="Dismiss"><X size={15}/></button></div>}
  {selected&&<div className="modal-backdrop" onClick={()=>setSelected(null)}><div className="profile-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setSelected(null)} aria-label="Close"><X/></button><DoctorAvatar d={selected} large/><span className="section-kicker">SAMPLE PROFILE</span><h2>{selected.name}</h2><p className="modal-title">{selected.title} · {selected.degree}</p><div className="modal-stats"><span><Star size={15} fill="currentColor"/> {selected.rating} <small>({selected.reviews} reviews · demo)</small></span><span><Clock3 size={15}/> {selected.experience}</span></div><p className="modal-bio">{selected.bio}</p><div className="tag-row">{selected.specialties.map(s=><span key={s}>{s}</span>)}</div><div className="modal-price"><div><small>Illustrative session fee</small><b>₹{selected.price}</b></div><button className="btn btn-primary" onClick={()=>book(selected)}>Request booking <ArrowRight size={17}/></button></div><p className="modal-disclaimer">Demo profile only. Credentials and availability are not verified.</p></div></div>}
- {booking&&<div className="modal-backdrop" onClick={()=>setBooking(null)}><div className="booking-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setBooking(null)} aria-label="Close"><X/></button><span className="section-kicker">LET'S GET YOU MOVING</span><h2>Request a session.</h2><p className="booking-intro">{booking?`With ${booking.name} (sample profile)`:'Tell us a little about what you need.'} Fill in your details and continue in WhatsApp.</p><form onSubmit={submitBooking} className="booking-form"><label>Your name<input name="name" required placeholder="Full name"/></label><label>Phone number<input name="phone" required inputMode="tel" pattern="[0-9+ ()-]{8,}" placeholder="Your contact number"/></label><label>Area / address<input name="address" required placeholder="Area, landmark or pincode" defaultValue={location}/></label><label>What do you need help with?<select name="concern" defaultValue={condition||''} required><option value="" disabled>Select a condition</option>{conditions.map(c=><option key={c[0]}>{c[0]}</option>)}</select></label><div className="form-row"><label>Preferred date<input type="date" name="date" required min={new Date().toISOString().split('T')[0]}/></label><label>Preferred time<select name="time" required defaultValue="Morning (9 AM–12 PM)"><option>Morning (9 AM–12 PM)</option><option>Afternoon (12–4 PM)</option><option>Evening (4–8 PM)</option></select></label></div><button className="btn btn-primary form-submit" type="submit">Continue to WhatsApp <MessageCircle size={17}/></button><p className="form-privacy"><ShieldCheck size={14}/> No online payment in this demo. Your request is not confirmed until the team replies.</p></form></div></div>}
+ {booking&&<div className="modal-backdrop" onClick={()=>setBooking(null)}><div className="booking-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setBooking(null)} aria-label="Close"><X/></button><span className="section-kicker">LET'S GET YOU MOVING</span><h2>Request a session.</h2><p className="booking-intro">{booking?`With ${booking.name}`:'Tell us a little about what you need.'} Save your request securely, then continue in WhatsApp.</p><form onSubmit={submitBooking} className="booking-form"><label>Your name<input name="name" required placeholder="Full name"/></label><label>Phone number<input name="phone" required inputMode="tel" pattern="[0-9+ ()-]{8,}" placeholder="Your contact number"/></label><label>Area / address<input name="address" required placeholder="Area, landmark or pincode" defaultValue={location}/></label><label>What do you need help with?<select name="concern" defaultValue={condition||''} required><option value="" disabled>Select a condition</option>{conditions.map(c=><option key={c[0]}>{c[0]}</option>)}</select></label><div className="form-row"><label>Preferred date<input type="date" name="date" required min={new Date().toISOString().split('T')[0]}/></label><label>Preferred time<select name="time" required defaultValue="Morning (9 AM–12 PM)"><option>Morning (9 AM–12 PM)</option><option>Afternoon (12–4 PM)</option><option>Evening (4–8 PM)</option></select></label></div><label className="form-privacy"><input type="checkbox" name="consent" required/> I agree that Physio at Home may store and use these details to respond to my request.</label><button className="btn btn-primary form-submit" type="submit">Save request & continue <MessageCircle size={17}/></button><p className="form-privacy"><ShieldCheck size={14}/> No online payment. Your request is not confirmed until the team replies.</p></form></div></div>}
  </>;
 }
 function DoctorAvatar({d,large=false}){return <div className={`doctor-avatar ${d.color} ${large?'avatar-large':''}`}><span>{d.emoji}</span><i><BadgeCheck size={15}/></i></div>}
