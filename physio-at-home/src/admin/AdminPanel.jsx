@@ -116,30 +116,29 @@ function Editor({ table, columns, row, onClose, onSaved }) {
 
   async function lookupLocation() {
     const query = String(values.service_location || "").trim();
-    if (!query) { setLocationMessage("Enter an address or area in Bengaluru, Karnataka first."); return; }
+    if (!query) { setLocationMessage("Enter an area, city and state in India first."); return; }
     setLocationBusy(true);
     setLocationMessage("");
     try {
-      const response = await fetch("https://photon.komoot.io/api/?q=" + encodeURIComponent(query + ", Bengaluru, Karnataka, India") + "&limit=5");
+      const response = await fetch("https://photon.komoot.io/api/?q=" + encodeURIComponent(query + ", India") + "&limit=8");
       if (!response.ok) throw new Error("Location lookup failed");
       const json = await response.json();
       const features = Array.isArray(json.features) ? json.features : [];
       const feature = features.find((item) => {
         const p = item.properties || {};
-        const state = String(p.state || "").toLowerCase();
-        const country = String(p.country || "").toLowerCase();
-        const area = [p.city, p.county, p.district, p.name].filter(Boolean).join(" ").toLowerCase();
-        return state.includes("karnataka") && country.includes("india") && /bengaluru|bangalore/.test(area);
+        return String(p.country || "").toLowerCase() === "india"
+          && Array.isArray(item.geometry?.coordinates)
+          && item.geometry.coordinates.length >= 2;
       });
       const point = feature?.geometry?.coordinates;
       if (!Array.isArray(point) || point.length < 2) {
-        setLocationMessage("Could not verify a Bengaluru, Karnataka result. Try a more specific Bangalore area or enter coordinates manually.");
+        setLocationMessage("Could not verify this location in India. Try a more specific area, city and state, or enter coordinates manually.");
         return;
       }
       const p = feature.properties || {};
       const label = [p.name, p.district, p.city, p.state, p.country].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(", ");
       setValues((current) => ({ ...current, service_location: label || query, service_lng: Number(point[0]), service_lat: Number(point[1]) }));
-      setLocationMessage("Location found. Review the address and coordinates, then save the profile.");
+      setLocationMessage("Location found in India. Review the address and coordinates, then save the profile.");
     } catch {
       setLocationMessage("Location lookup is unavailable. You can enter latitude and longitude manually.");
     } finally {
