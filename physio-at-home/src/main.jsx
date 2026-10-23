@@ -118,7 +118,7 @@ function App(){
       }));
       setNearbyDoctors(normalized);
       setNearby(normalized.length ? 'results' : 'empty');
-      if (!normalized.length) setNearbyMessage('Sorry, no service is available within 10 km of this location. Try another location.');
+      if (!normalized.length) setNearbyMessage('Sorry, no service is available within the providers’ configured service radius of this location. Try another location.');
     } catch {
       if (id !== runId.current) return;
       setNearby('error');
