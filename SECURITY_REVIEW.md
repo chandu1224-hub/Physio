@@ -36,3 +36,11 @@ Scope: source review of `physio-at-home/` and the separate `physio-location/` im
 - Staging database tests: not run.
 - Production SQL changes: none.
 - Production deployment: none.
+
+
+## Follow-up hardening — 2026-10-23
+- Aligned the review-only `physios_near(p_lat, p_lng)` proposal with the canonical frontend contract: it returns only `physio_id` and `distance_km`; the client then fetches public card fields through a separate explicit-column query. The RPC proposal is still unexecuted and requires staging validation against the actual deployed function and grants.
+- Updated the tracked security-hardening migration to explicitly revoke existing column-level grants as well as table-level grants before restoring the intended least-privilege permissions. This is important because column grants must be audited separately.
+- The public profile hook's explicit column selection omits the exact service coordinates. Those coordinates are used only by the server-side nearby lookup; never expose provider base coordinates to anonymous clients.
+- Improved the admin editor's empty-table workflow so it uses known field templates instead of falling back to raw JSON, and scoped the service-location controls to physiotherapist profiles rather than booking/application records.
+- These are repository changes only. No migration or SQL statement has been executed against the user's Supabase project. Before applying the migration, validate every referenced column against the read-only audit output and test anonymous, non-admin authenticated, and admin flows in staging.
