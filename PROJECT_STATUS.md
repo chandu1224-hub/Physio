@@ -60,3 +60,29 @@
 - Updated the Netlify Content-Security-Policy to use `https://*.supabase.co` and `wss://*.supabase.co` rather than the literal `YOUR-PROJECT.supabase.co` placeholder. This is a compatibility fallback, not the tightest possible allowlist; replace it with the exact project host once confirmed from the Supabase project URL.
 - Supabase documentation confirms grants and RLS are separate controls; adding policies does not revoke table grants. Keep database changes staged until RLS-enabled status and all application use paths are verified.
 - These are source/config commits on `work/production-readiness` only. No production deployment or live database changes were made. Build, browser, and database policy tests remain unrun.
+
+
+## Progress update — 2026-10-23
+
+### Changes committed on `work/production-readiness`
+- Added a GitHub Actions CI workflow for `physio-at-home/`; the latest checked workflow run passed dependency installation and the production build: https://github.com/chandu1224-hub/Physio/actions/runs/39978936432
+- Supabase client initialization now handles missing public environment variables without crashing.
+- Public provider loading uses a named public-field allowlist and filters to `status = 'published'`; production errors/empty results no longer silently display the illustrative fallback profiles.
+- Admin sign-in, session restoration, profile loading, saving, and deletion now handle unexpected failures more safely.
+- The admin profile editor now has a schema-backed empty state, so adding the first profile does not require a raw JSON editor. New profiles default to `draft`; an administrator must explicitly publish them after verifying details.
+- Added `physio-at-home/supabase/review-only-nearby-search.sql` as a proposal for a public-field allowlisted nearby-search RPC. It has not been executed.
+
+### Still release-blocking
+- Production Supabase grants and RLS policies remain unsafe/incompletely verified based on the dashboard outputs supplied by the user. The existing permissive `using (true)` provider policy may expose unpublished rows and private columns to direct table queries; application-side field allowlists do not fix database access.
+- Nearby search is not yet connected end-to-end in the canonical frontend. The separate `physio-location/` SQL is incompatible with the production schema and must not be run as-is.
+- The five existing provider rows have no verified service coordinates. Do not invent locations or claim these clinicians are verified.
+- Booking currently opens WhatsApp and does not persist to `booking_requests`.
+- No staging RLS tests, browser regression suite, production SQL execution, merge, or deployment has been performed.
+
+### Next safe sequence
+1. Prepare a complete staging-only RLS/grant migration based on verified live policy and privilege inventory; retain least-privilege admin CRUD while blocking public access to private fields.
+2. Test anonymous, non-admin authenticated, and admin access in staging.
+3. Integrate the canonical nearby UI with the RPC and a manual location search, showing no-service/error states rather than demo matches.
+4. Add verified provider coordinates and test 10 km radius behavior.
+5. Decide whether bookings should remain WhatsApp-only or be stored with server-side validation.
+6. Run the build and browser regression tests, then present a PR for approval. No production SQL, merge, or deployment without explicit approval.
