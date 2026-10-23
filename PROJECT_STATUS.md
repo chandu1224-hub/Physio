@@ -115,3 +115,10 @@
 - The five sample coordinates are fictional test locations, not actual clinician bases. Keep the profiles clearly identified as demo/test data until real clinicians and their locations are verified.
 - Nearby-search test plan in staging: seed the five demo points; install/review the allowlisted `physios_near` RPC only after security review; search near central Bengaluru (12.9716, 77.5946), near each individual test point, and from outside all 10 km radii; verify sorted distances, radius boundary behavior, empty results, malformed coordinates, and RPC failure UI. Test manual geocoding for valid Bangalore areas, a non-Bangalore area, an unknown area, and network failure.
 - No SQL was executed and no production rows were modified. Automated CI is required to validate the new admin JSX; real RPC integration testing still requires a staging Supabase project with the reviewed function installed.
+
+
+## Nearby RPC contract correction — 2026-10-23
+- Found a contract mismatch between the review-only SQL proposal and the canonical frontend: the frontend calls `physios_near(p_lat, p_lng)` and expects rows shaped as `{ physio_id, distance_km }`, then fetches the selected public profile fields under RLS.
+- Updated `physio-at-home/supabase/review-only-nearby-search.sql` to return only provider IDs and rounded distances, matching that frontend contract. It validates coordinates, filters to published profiles with saved coordinates, applies each provider's configured radius (10 km default), and keeps a fixed `pg_catalog` search path.
+- This change only updates a review-only SQL file in GitHub. It has not been run against staging or production. CI is running for this commit; verify the latest Actions result before treating it as build-verified.
+- Remaining runtime dependency: provider coordinates must be accurate and present, and the live RPC signature/definition and grants must be verified from the read-only Supabase audit before enabling the feature.
