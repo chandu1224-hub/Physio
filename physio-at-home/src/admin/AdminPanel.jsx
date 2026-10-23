@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { LogOut, Plus, Pencil, Trash2, X, Save, RefreshCw } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import "./admin.css";
 
 const TABLES = ["physiotherapists"]; // add more table names here to manage them too
@@ -31,6 +31,11 @@ function Login({ onDone }) {
     e.preventDefault();
     setBusy(true);
     setErr("");
+    if (!isSupabaseConfigured || !supabase) {
+      setBusy(false);
+      setErr("Admin sign-in is unavailable because Supabase is not configured.");
+      return;
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) setErr(error.message);
@@ -146,6 +151,12 @@ function Manager({ session }) {
   const load = useCallback(async () => {
     setLoading(true);
     setErr("");
+    if (!isSupabaseConfigured || !supabase) {
+      setErr("Admin data is unavailable because Supabase is not configured.");
+      setRows([]);
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase.from(table).select("*").order("created_at", { ascending: true });
     if (error) {
       // retry without ordering in case created_at does not exist
@@ -162,6 +173,7 @@ function Manager({ session }) {
 
   async function remove(row) {
     if (!window.confirm("Delete this record? This cannot be undone.")) return;
+    if (!supabase) { setErr("Supabase is not configured."); return; }
     const { error } = await supabase.from(table).delete().eq("id", row.id);
     if (error) setErr(error.message);
     else load();
@@ -234,6 +246,10 @@ export default function AdminPanel() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) {
+      setReady(true);
+      return undefined;
+    }
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setReady(true); });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
@@ -241,11 +257,13 @@ export default function AdminPanel() {
 
   useEffect(() => {
     if (!session) { setIsAdmin(null); return; }
+    if (!supabase) { setIsAdmin(false); return; }
     supabase.from("admins").select("user_id").eq("user_id", session.user.id).maybeSingle()
-      .then(({ data }) => setIsAdmin(!!data));
+      .then(({ data, error }) => setIsAdmin(!error && !!data));
   }, [session]);
 
   if (!ready) return <div className="ad-center"><p className="ad-muted">Loading</p></div>;
+  if (!isSupabaseConfigured || !supabase) return <div className="ad-center"><div className="ad-login"><h1>Admin unavailable</h1><p className="ad-muted">Supabase is not configured for this deployment. Add the required environment variables and rebuild the site.</p></div></div>;
   if (!session) return <Login onDone={() => {}} />;
   if (isAdmin === null) return <div className="ad-center"><p className="ad-muted">Checking access</p></div>;
   if (!isAdmin) {
