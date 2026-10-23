@@ -107,29 +107,6 @@ alter table public.booking_requests enable row level security;
 alter table public.physiotherapists enable row level security;
 alter table public.therapist_applications enable row level security;
 
-commit;
-
--- ---------------------------------------------------------------------------
--- SECURITY DEFINER nearby RPC hardening
--- ---------------------------------------------------------------------------
--- Owner-reported live definition:
---   public.physios_near(double precision, double precision)
---   owner postgres; SECURITY DEFINER; search_path=public
---   EXECUTE granted to anon, authenticated, service_role
--- The body was inspected and returns only (physio_id text, distance_km double precision),
--- filters status='published', validates latitude/longitude bounds, and respects service radius.
---
--- Because all table references in the current function body are schema-qualified
--- (public.physiotherapists), and math functions are built-ins, a pg_catalog-only search_path
--- avoids resolving untrusted objects from public. Keep EXECUTE for anon/authenticated because
--- the public nearby-search UI calls this RPC. Do not change ownership or return columns here.
--- This ALTER is still a production change and must only be applied after reviewing the exact
--- deployed function body and confirming it matches the inspected definition.
-alter function public.physios_near(double precision, double precision)
-  set search_path = pg_catalog;
-
-
-
 -- Fix the SECURITY DEFINER function search_path in the same transaction.
 -- The function body must keep all table references schema-qualified (public.physiotherapists).
 alter function public.physios_near(double precision, double precision)
