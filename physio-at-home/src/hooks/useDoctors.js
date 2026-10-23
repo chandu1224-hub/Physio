@@ -45,7 +45,7 @@ export function useDoctors(fallback = []) {
       }
       try {
         const { data, error: queryError } = await supabase.from("physiotherapists")
-          .select("id,name,initials,title,degree,experience_years,specialties,conditions,services,service_areas,languages,bio,price,availability,rating,reviews,emoji,color,photo_path,gallery_paths,display_order,featured,status,service_location,service_lat,service_lng,service_radius_km")
+          .select("id,name,initials,title,degree,experience_years,specialties,conditions,services,service_areas,languages,bio,price,availability,rating,reviews,emoji,color,photo_path,gallery_paths,display_order,featured,status,service_location,service_radius_km")
           .eq("status", "published")
           .order("display_order", { ascending: true });
         if (!active) return;
