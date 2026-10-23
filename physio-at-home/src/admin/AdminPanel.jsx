@@ -5,6 +5,8 @@ import "./admin.css";
 
 const TABLES = ["physiotherapists"];
 const HIDDEN = ["id", "created_at", "updated_at"];
+const NUMBER_FIELDS = new Set(["experience_years", "price", "rating", "reviews", "display_order", "service_lat", "service_lng", "service_radius_km"]);
+const ARRAY_FIELDS = new Set(["specialties", "conditions", "services", "service_areas", "languages", "gallery_paths"]);
 // Known schema lets admins add the first profile without resorting to a raw JSON editor.
 const EMPTY_PROFILE = {
   slug: "", name: "", initials: "", title: "Physiotherapist", degree: "",
@@ -22,11 +24,12 @@ function toInput(value) {
   return String(value);
 }
 
-function fromInput(original, text) {
-  if (typeof original === "boolean") return text === true || text === "true";
-  if (typeof original === "number") return text === "" ? null : Number(text);
-  if (original !== null && typeof original === "object") {
-    try { return JSON.parse(text); } catch { return original; }
+function fromInput(original, text, field) {
+  if (typeof original === "boolean" || field === "featured") return text === true || text === "true";
+  if (typeof original === "number" || NUMBER_FIELDS.has(field)) return text === "" ? null : Number(text);
+  if ((original !== null && typeof original === "object") || ARRAY_FIELDS.has(field)) {
+    if (text === "" && field === "published_at") return null;
+    try { return JSON.parse(text); } catch { return original ?? []; }
   }
   return text === "" ? null : text;
 }
@@ -99,7 +102,7 @@ function Editor({ table, columns, row, onClose, onSaved }) {
       payload = {};
       columns.forEach((c) => {
         const original = row ? row[c] : EMPTY_PROFILE[c];
-        payload[c] = fromInput(original, values[c]);
+        payload[c] = fromInput(original, values[c], c);
       });
       if (table === "physiotherapists" && isNew) {
         if (!String(payload.name || "").trim()) {
@@ -147,14 +150,14 @@ function Editor({ table, columns, row, onClose, onSaved }) {
                 </label>
               );
             }
-            const long = typeof orig === "string" && orig.length > 80;
+            const long = (typeof orig === "string" && orig.length > 80) || ARRAY_FIELDS.has(c);
             return (
               <label key={c}>{c}
                 {long ? (
                   <textarea rows={4} value={toInput(values[c])} onChange={(e) => setValues({ ...values, [c]: e.target.value })} />
                 ) : (
                   <input
-                    type={typeof orig === "number" ? "number" : "text"}
+                    type={typeof orig === "number" || NUMBER_FIELDS.has(c) ? "number" : "text"}
                     step="any"
                     value={toInput(values[c])}
                     onChange={(e) => setValues({ ...values, [c]: e.target.value })}
