@@ -48,6 +48,23 @@ revoke all privileges on table public.booking_requests from public, anon, authen
 revoke all privileges on table public.physiotherapists from public, anon, authenticated;
 revoke all privileges on table public.therapist_applications from public, anon, authenticated;
 
+-- Table-level revokes do not reliably remove separately granted column privileges.
+-- Clear existing browser-role column grants before restoring only the required access.
+revoke all privileges (user_id, created_at)
+  on table public.admins from public, anon, authenticated;
+revoke all privileges (id, created_at, name, phone, area, condition, care_type, preferred_time,
+  notes, physio_id, consent, status)
+  on table public.booking_requests from public, anon, authenticated;
+revoke all privileges (id, slug, name, initials, title, degree, experience_years, specialties,
+  conditions, services, service_areas, languages, bio, full_bio, price, availability,
+  contact_info, rating, reviews, emoji, color, photo_path, gallery_paths, display_order,
+  featured, status, created_at, updated_at, published_at, service_location, service_lat,
+  service_lng, service_radius_km)
+  on table public.physiotherapists from public, anon, authenticated;
+revoke all privileges (id, created_at, name, phone, email, qualification, experience_years,
+  specialties, city, reg_no, about, consent, status)
+  on table public.therapist_applications from public, anon, authenticated;
+
 -- Admin identity lookup: users can read only their own admin row through the existing RLS policy.
 grant select on table public.admins to authenticated;
 
