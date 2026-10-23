@@ -36,10 +36,15 @@ function Login({ onDone }) {
       setErr("Admin sign-in is unavailable because Supabase is not configured.");
       return;
     }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
-    if (error) setErr(error.message);
-    else onDone();
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) setErr(error.message);
+      else onDone();
+    } catch {
+      setErr("Sign-in failed unexpectedly. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -157,14 +162,26 @@ function Manager({ session }) {
       setLoading(false);
       return;
     }
-    const { data, error } = await supabase.from(table).select("*").order("created_at", { ascending: true });
-    if (error) {
-      // retry without ordering in case created_at does not exist
-      const retry = await supabase.from(table).select("*");
-      if (retry.error) setErr(retry.error.message);
-      else setRows(retry.data || []);
-    } else setRows(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.from(table).select("*").order("created_at", { ascending: true });
+      if (error) {
+        // Retry without ordering in case created_at does not exist.
+        const retry = await supabase.from(table).select("*");
+        if (retry.error) {
+          setErr(retry.error.message);
+          setRows([]);
+        } else {
+          setRows(retry.data || []);
+        }
+      } else {
+        setRows(data || []);
+      }
+    } catch {
+      setErr("Could not load admin records. Check your connection and permissions.");
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
   }, [table]);
 
   useEffect(() => { load(); }, [load]);
@@ -174,9 +191,13 @@ function Manager({ session }) {
   async function remove(row) {
     if (!window.confirm("Delete this record? This cannot be undone.")) return;
     if (!supabase) { setErr("Supabase is not configured."); return; }
-    const { error } = await supabase.from(table).delete().eq("id", row.id);
-    if (error) setErr(error.message);
-    else load();
+    try {
+      const { error } = await supabase.from(table).delete().eq("id", row.id);
+      if (error) setErr(error.message);
+      else await load();
+    } catch {
+      setErr("Could not delete this record. Please try again.");
+    }
   }
 
   return (
@@ -250,16 +271,39 @@ export default function AdminPanel() {
       setReady(true);
       return undefined;
     }
-    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setReady(true); });
+    let mounted = true;
+    supabase.auth.getSession()
+      .then(({ data, error }) => {
+        if (!mounted) return;
+        if (error) console.error("Could not restore admin session:", error.message);
+        setSession(data?.session ?? null);
+        setReady(true);
+      })
+      .catch(() => {
+        if (mounted) {
+          setSession(null);
+          setReady(true);
+        }
+      });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
     if (!session) { setIsAdmin(null); return; }
     if (!supabase) { setIsAdmin(false); return; }
+    let active = true;
     supabase.from("admins").select("user_id").eq("user_id", session.user.id).maybeSingle()
-      .then(({ data, error }) => setIsAdmin(!error && !!data));
+      .then(({ data, error }) => {
+        if (active) setIsAdmin(!error && !!data);
+      })
+      .catch(() => {
+        if (active) setIsAdmin(false);
+      });
+    return () => { active = false; };
   }, [session]);
 
   if (!ready) return <div className="ad-center"><p className="ad-muted">Loading</p></div>;
