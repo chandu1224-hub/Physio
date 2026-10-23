@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { Activity, ArrowDownRight, ArrowRight, BadgeCheck, CalendarDays, Check, ChevronDown, Clock3, Heart, MapPin, Menu, MessageCircle, Search, ShieldCheck, Sparkles, Star, Stethoscope, X, Zap } from 'lucide-react';
 import './styles.css';
 import AdminPanel from './admin/AdminPanel';
-import { useDoctors } from './hooks/useDoctors';
+import { useDoctors, normalizeDoctor } from './hooks/useDoctors';
+import { isSupabaseConfigured, supabase } from './lib/supabase';
 
 const WA_NUMBER = '917795855640';
 const fallbackDoctors = [
@@ -88,52 +89,92 @@ function App(){
  const runId = useRef(0);
   const [nearby, setNearby] = useState(null);
   const [coords, setCoords] = useState(null);
+  const [nearbyDoctors, setNearbyDoctors] = useState([]);
+  const [nearbyLocation, setNearbyLocation] = useState('');
+  const [nearbyMessage, setNearbyMessage] = useState('');
 
-  const closeNearby = () => { runId.current++; setNearby(null); };
+  const closeNearby = () => { runId.current++; setNearby(null); setNearbyMessage(''); };
 
-  const startNearby = () => {
+  const searchNearbyCoords = async (lat, lng, label = '') => {
     const id = ++runId.current;
-    const alive = () => runId.current === id;
-    let finished = false;
-    setNearby('locating');
-    setCoords(null);
-
-    const finish = (c) => {
-      if (finished) return;
-      finished = true;
-      setTimeout(() => {
-        if (!alive()) return;
-        setCoords(c);
-        setNearby('found');
-        setTimeout(() => alive() && setNearby('searching'), 1200);
-        setTimeout(() => alive() && setNearby('results'), 4500);
-      }, 1800);
-    };
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (p) => finish({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        () => finish(null),
-        { timeout: 6000 }
-      );
-      setTimeout(() => finish(null), 9000);
-    } else {
-      finish(null);
+    setCoords({ lat, lng });
+    setNearbyLocation(label);
+    setNearbyDoctors([]);
+    setNearby('searching');
+    setNearbyMessage('');
+    if (!isSupabaseConfigured || !supabase) {
+      setNearby('error');
+      setNearbyMessage('Nearby search is not configured yet. Please contact our team or try again later.');
+      return;
+    }
+    try {
+      const { data, error } = await supabase.rpc('physios_near', { user_lat: lat, user_lng: lng });
+      if (id !== runId.current) return;
+      if (error) throw error;
+      const rows = Array.isArray(data) ? data : [];
+      const normalized = rows.map((row, i) => ({
+        ...normalizeDoctor(row, i),
+        distance: Number.isFinite(Number(row.distance_km)) ? Number(row.distance_km).toFixed(1) + ' km away' : ''
+      }));
+      setNearbyDoctors(normalized);
+      setNearby(normalized.length ? 'results' : 'empty');
+      if (!normalized.length) setNearbyMessage('Sorry, no service is available within 10 km of this location. Try another location.');
+    } catch {
+      if (id !== runId.current) return;
+      setNearby('error');
+      setNearbyMessage('Nearby search is temporarily unavailable. The secure location-search service may need to be enabled. You can try another location or contact our team.');
     }
   };
 
-  useEffect(() => {
-    const onClick = (e) => {
-      const el = e.target.closest && e.target.closest('a,button');
-      if (el && !el.closest('.nb-overlay') && /find nearby physio/i.test(el.textContent || '')) {
-        e.preventDefault();
-        e.stopPropagation();
-        startNearby();
+  const startNearby = () => {
+    const id = ++runId.current;
+    setNearby('locating');
+    setCoords(null);
+    setNearbyDoctors([]);
+    setNearbyLocation('');
+    setNearbyMessage('');
+    if (!navigator.geolocation) {
+      setNearby('manual');
+      setNearbyMessage('Your browser does not support automatic location. Enter an area below.');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      p => { if (id === runId.current) void searchNearbyCoords(p.coords.latitude, p.coords.longitude); },
+      () => {
+        if (id !== runId.current) return;
+        setNearby('manual');
+        setNearbyMessage('We could not access your location. Enter an area or allow location access and try again.');
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  const searchNearbyByText = async (e) => {
+    e?.preventDefault();
+    const q = nearbyLocation.trim();
+    if (!q) { setNearbyMessage('Enter a city, area or full address to search.'); return; }
+    const id = ++runId.current;
+    setNearby('searching');
+    setNearbyMessage('');
+    try {
+      const response = await fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=1');
+      if (!response.ok) throw new Error('Geocoding failed');
+      const json = await response.json();
+      const feature = json && json.features && json.features[0];
+      const point = feature && feature.geometry && feature.geometry.coordinates;
+      if (!Array.isArray(point) || point.length < 2 || !Number.isFinite(Number(point[0])) || !Number.isFinite(Number(point[1]))) {
+        if (id === runId.current) { setNearby('manual'); setNearbyMessage('We could not find that location. Try a more specific area or address.'); }
+        return;
       }
-    };
-    document.addEventListener('click', onClick, true);
-    return () => document.removeEventListener('click', onClick, true);
-  }, []);
+      if (id !== runId.current) return;
+      const p = feature.properties || {};
+      const label = [p.name, p.district, p.city, p.state, p.country].filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(', ');
+      await searchNearbyCoords(Number(point[1]), Number(point[0]), label || q);
+    } catch {
+      if (id === runId.current) { setNearby('manual'); setNearbyMessage('We could not look up that location right now. Check your connection and try again.'); }
+    }
+  };
+
   useEffect(() => {
     document.body.style.overflow = nearby ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -150,32 +191,38 @@ function App(){
  <header className="header"><div className="nav wrap"><Brand/><nav className={menuOpen?'nav-links open':'nav-links'}><a href="#how" onClick={()=>setMenuOpen(false)}>How it works</a><a href="#care" onClick={()=>setMenuOpen(false)}>Conditions</a><a href="#physios" onClick={()=>setMenuOpen(false)}>Our physios</a><a href="#faq" onClick={()=>setMenuOpen(false)}>FAQs</a><a className="nav-cta" href={waLink('Hi! I need help booking a physiotherapist.')} target="_blank" rel="noreferrer"><MessageCircle size={16}/> Talk to us</a></nav><button className="menu-toggle" onClick={()=>setMenuOpen(!menuOpen)} aria-label="Toggle navigation">{menuOpen?<X/>:<Menu/>}</button></div></header>
  <main>
  <section className="hero" id="home"><div className="hero-glow"/><div className="wrap hero-grid"><div className="hero-copy"><div className="eyebrow"><span className="eyebrow-dot"/> PHYSIOTHERAPY, REIMAGINED</div><h1>A licensed physio,<br/><em>at your door</em> in 30<br className="desktop-break"/> minutes.</h1><p className="hero-sub">Tap where it hurts, confirm your address, and let a nearby physiotherapist come to you — care that fits your life, from start to finish.</p><div className="hero-actions"><a className="btn btn-primary" href="#find">Find nearby physio <ArrowRight size={18}/></a><button className="outline-btn" onClick={()=>{setPage('join');window.scrollTo(0,0)}}>Join as Physiotherapist</button><a className="text-link" href="#how">See how it works <ArrowDownRight size={17}/></a></div><div className="hero-proof"><div><strong>30 <small>min</small></strong><span>average target arrival*</span></div><div><strong>100%</strong><span>profile-led discovery</span></div><div><strong>4.9<small>★</small></strong><span>sample rating</span></div></div><p className="disclaimer">*Illustrative demo claim. Actual availability and arrival time depend on your location.</p></div>
- <div className="hero-visual"><div className="visual-orbit orbit-one"/><div className="visual-orbit orbit-two"/><div className="hero-card top-card"><span className="mini-icon"><ShieldCheck size={16}/></span><div><b>Care, made personal</b><small>Find the right kind of support</small></div><span className="tiny-check"><Check size={13}/></span></div><div className="hero-person"><div className="person-halo"/><div className="person-emoji">🧑🏻‍⚕️</div><div className="person-spark spark-a">✦</div><div className="person-spark spark-b">✳</div><div className="home-base"><span><Activity size={22}/></span><div><b>Good care starts here</b><small>At your place. At your pace.</small></div></div></div><div className="hero-card floating-card"><div className="avatar-stack"><span>👩🏻‍⚕️</span><span>👨🏽‍⚕️</span><span>👩🏽‍⚕️</span></div><div><b>Care for your needs</b><small>Browse 5 sample profiles</small></div><span className="online-dot"/></div><div className="float-label label-left"><Heart size={15}/> A little care goes far</div><div className="float-label label-right"><MapPin size={15}/> Care comes to you</div></div></div>   </section>  {nearby&&<div className="nb-overlay" role="dialog" aria-modal="true">
-  {nearby!=='results'?(
-   <div className="nb-stage">
-    <button className="nb-close" onClick={closeNearby} aria-label="Cancel"><X size={20}/></button>
-    <div className={`nb-radar ${nearby}`}>
-     <span className="nb-ring r1"/><span className="nb-ring r2"/><span className="nb-ring r3"/>
-     <span className="nb-sweep"/>
-     <div className="nb-me"><MapPin size={26}/></div>
-     {nearby==='searching'&&[0,1,2,3,4].map(i=><span key={i} className={`nb-dot d${i}`}/>)}
-    </div>
-    <h2 className="nb-title">{nearby==='locating'?'Checking your location...':nearby==='found'?'Location confirmed':'Finding physios near you...'}</h2>
-    <p className="nb-sub">{nearby==='locating'?'Please allow location access if your browser asks.':nearby==='found'?(coords?`Near ${coords.lat.toFixed(3)}, ${coords.lng.toFixed(3)}`:'Using a demo area for this preview'):'Matching sample profiles in your area'}</p>
-    <div className="nb-steps">{['Detecting your location','Scanning your area','Matching physios'].map((s,i)=>{const a=['locating','found','searching'].indexOf(nearby);return <div key={s} className={`nb-step ${i<a?'done':''} ${i===a?'active':''}`}><span className="nb-step-icon">{i<a?<Check size={13}/>:null}</span>{s}</div>})}</div>
-    <button className="nb-cancel" onClick={closeNearby}>Cancel</button>
-   </div>
-  ):(
-   <div className="nb-sheet">
-    <div className="nb-sheet-head">
-     <div><span className="section-kicker">NEAR YOU</span><h2>{Math.min(5,doctors.length)} physios found nearby</h2><p>Demo profiles for preview. Real availability is confirmed on booking.</p></div>
-     <button className="nb-close static" onClick={closeNearby} aria-label="Close"><X size={20}/></button>
-    </div>
-    <div className="nb-list">{doctors.slice(0,5).map(d=><DoctorCard key={d.id} d={d} onView={()=>{closeNearby();setSelected(d)}} onBook={()=>book(d)}/>)}</div>
-   </div>
-  )}
- </div>}
- {searching&&<div className="search-overlay"><div className="searching-box"><div className="orbit-search"><div className="search-ring"/><div className="search-center"><MapPin size={30}/><span>YOU</span></div>{['👩🏻‍⚕️','👨🏽‍⚕️','👩🏽‍⚕️','👨🏻‍⚕️','👩🏼‍⚕️'].map((e,i)=><div className={`orbit-doc doc-${i}`} key={i}>{e}</div>)}</div><span className="section-kicker">ONE MOMENT, PLEASE</span><h2>Finding your nearby physio<span className="ellipsis">...</span></h2><p>Looking for a match for your care needs{location?` near ${location}`:''}.</p><div className="search-progress"><span/></div><div className="searching-note"><span className="pulse-dot"/> Matching sample profiles to your preferences</div><button className="cancel-search" onClick={()=>setSearching(false)}>Cancel search</button></div></div>}
+ <div className="hero-visual"><div className="visual-orbit orbit-one"/><div className="visual-orbit orbit-two"/><div className="hero-card top-card"><span className="mini-icon"><ShieldCheck size={16}/></span><div><b>Care, made personal</b><small>Find the right kind of support</small></div><span className="tiny-check"><Check size={13}/></span></div><div className="hero-person"><div className="person-halo"/><div className="person-emoji">🧑🏻‍⚕️</div><div className="person-spark spark-a">✦</div><div className="person-spark spark-b">✳</div><div className="home-base"><span><Activity size={22}/></span><div><b>Good care starts here</b><small>At your place. At your pace.</small></div></div></div><div className="hero-card floating-card"><div className="avatar-stack"><span>👩🏻‍⚕️</span><span>👨🏽‍⚕️</span><span>👩🏽‍⚕️</span></div><div><b>Care for your needs</b><small>Browse 5 sample profiles</small></div><span className="online-dot"/></div><div className="float-label label-left"><Heart size={15}/> A little care goes far</div><div className="float-label label-right"><MapPin size={15}/> Care comes to you</div></div></div>   </section>  {nearby&&<div className="nb-overlay" role="dialog" aria-modal="true" aria-labelledby="nearby-title">
+  <div className={nearby==='results'?'nb-sheet':'nb-stage'}>
+    <button className="nb-close" onClick={closeNearby} aria-label="Close nearby search"><X size={20}/></button>
+    {nearby==='locating'||nearby==='searching'?<>
+      <div className={'nb-radar '+nearby}><span className="nb-ring r1"/><span className="nb-ring r2"/><span className="nb-ring r3"/><span className="nb-sweep"/><div className="nb-me"><MapPin size={26}/></div></div>
+      <h2 id="nearby-title" className="nb-title">{nearby==='locating'?'Checking your location...':'Searching for available physiotherapists...'}</h2>
+      <p className="nb-sub">{nearby==='locating'?'Please allow location access if your browser asks.':'Checking published physiotherapists whose service radius covers this location.'}</p>
+      <button className="nb-cancel" onClick={closeNearby}>Cancel</button>
+    </>:<>
+      <div className="nb-sheet-head"><div><span className="section-kicker">NEARBY CARE</span>
+        <h2 id="nearby-title">{nearby==='results'?nearbyDoctors.length+' physio'+(nearbyDoctors.length===1?'':'s')+' found nearby':nearby==='empty'?'Sorry, no service available':nearby==='error'?'Nearby search unavailable':'Find care in your area'}</h2>
+        <p>{coords?('Searching near '+(nearbyLocation || (coords.lat.toFixed(3)+', '+coords.lng.toFixed(3)))+'. Results are limited to each provider’s saved service radius (10 km by default).'):'Use your current location or enter an area to check coverage.'}</p>
+      </div></div>
+      {nearbyMessage&&<p role="status" className="nb-sub">{nearbyMessage}</p>}
+      {(nearby==='manual'||nearby==='empty'||nearby==='error')&&<form className="nb-location-form" onSubmit={searchNearbyByText}>
+        <label htmlFor="nearby-location">Search by area or address</label>
+        <input id="nearby-location" value={nearbyLocation} onChange={e=>setNearbyLocation(e.target.value)} placeholder="e.g. Adyar, Chennai" autoComplete="street-address"/>
+        <button className="btn btn-primary" type="submit">Search location <Search size={15}/></button>
+        <button className="outline-btn" type="button" onClick={startNearby}>Use my current location <MapPin size={15}/></button>
+      </form>}
+      {nearby==='results'&&<>
+        <div className="nb-list">{nearbyDoctors.map(d=><DoctorCard key={d.id} d={d} onView={()=>{closeNearby();setSelected(d)}} onBook={()=>book(d)}/>)}</div>
+        <form className="nb-location-form" onSubmit={searchNearbyByText}>
+          <label htmlFor="nearby-location">Search another location</label>
+          <input id="nearby-location" value={nearbyLocation} onChange={e=>setNearbyLocation(e.target.value)} placeholder="Enter another area or address" autoComplete="street-address"/>
+          <button className="outline-btn" type="submit">Search another area <Search size={15}/></button>
+        </form>
+      </>}
+      <button className="nb-cancel" onClick={closeNearby}>Close</button>
+    </>}
+  </div>
+</div>}{searching&&<div className="search-overlay"><div className="searching-box"><div className="orbit-search"><div className="search-ring"/><div className="search-center"><MapPin size={30}/><span>YOU</span></div>{['👩🏻‍⚕️','👨🏽‍⚕️','👩🏽‍⚕️','👨🏻‍⚕️','👩🏼‍⚕️'].map((e,i)=><div className={`orbit-doc doc-${i}`} key={i}>{e}</div>)}</div><span className="section-kicker">ONE MOMENT, PLEASE</span><h2>Finding your nearby physio<span className="ellipsis">...</span></h2><p>Looking for a match for your care needs{location?` near ${location}`:''}.</p><div className="search-progress"><span/></div><div className="searching-note"><span className="pulse-dot"/> Matching sample profiles to your preferences</div><button className="cancel-search" onClick={()=>setSearching(false)}>Cancel search</button></div></div>}
  {results&&<section className="results-section" id="results"><div className="wrap"><div className="results-head"><div><span className="section-kicker">YOUR SHORTLIST</span><h2>Meet your care team.</h2><p>These are demo profiles to preview the experience. Contact us to confirm real availability.</p></div><button className="outline-btn" onClick={()=>{setResults(false);document.getElementById('find')?.scrollIntoView({behavior:'smooth'})}}>Edit search <Search size={15}/></button></div><div className="doctor-grid">{filtered.map(d=><DoctorCard key={d.id} d={d} onView={()=>setSelected(d)} onBook={()=>book(d)}/>)}</div>{filtered.length===0&&<div className="empty-state"><Search size={25}/><h3>No exact matches yet</h3><p>Try another condition or message our team for help finding the right care.</p><a className="btn btn-primary" href={waLink()} target="_blank" rel="noreferrer">Ask on WhatsApp <MessageCircle size={16}/></a></div>}</div></section>}
  <section className="trust-strip"><div className="wrap trust-grid"><div><ShieldCheck/><span><b>Profiles to explore</b><small>Know who you're contacting</small></span></div><div><Clock3/><span><b>Flexible scheduling</b><small>Ask for a time that works</small></span></div><div><Heart/><span><b>Care that feels human</b><small>Personal, thoughtful support</small></span></div><div><MessageCircle/><span><b>Real conversations</b><small>WhatsApp booking support</small></span></div></div></section>
  <section className="section care-section" id="care"><div className="wrap"><div className="section-intro"><span className="section-kicker">START WITH WHAT YOU FEEL</span><h2>Whatever's slowing you down,<br/><em>let's work on it.</em></h2><p>Explore common reasons people look for physiotherapy. A physiotherapist can help assess what support may be right for you.</p></div><div className="condition-grid">{conditions.map((c,i)=><button className="condition-card" key={c[0]} onClick={()=>{setCondition(c[0]);setResults(false);document.getElementById('find')?.scrollIntoView({behavior:'smooth'});}}><span className={`condition-symbol symbol-${i}`}>{c[1]}</span><span className="condition-name">{c[0]}</span><span className="condition-desc">{c[2]}</span><span className="condition-arrow"><ArrowRight size={17}/></span></button>)}</div><p className="medical-note">Physiotherapy is not an emergency service. For sudden severe symptoms, seek urgent medical care.</p></div></section>
