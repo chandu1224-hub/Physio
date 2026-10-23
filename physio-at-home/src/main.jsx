@@ -135,10 +135,13 @@ function App(){
       if (id !== runId.current) return;
       if (error) throw error;
       const rows = Array.isArray(data) ? data : [];
-      const normalized = rows.map((row, i) => ({
-        ...normalizeDoctor(row, i),
-        distance: Number.isFinite(Number(row.distance_km)) ? Number(row.distance_km).toFixed(1) + ' km away' : ''
-      }));
+      const profilesById = new Map(doctors.map((doctor) => [String(doctor.id), doctor]));
+      const normalized = rows.map((row) => {
+        const profile = profilesById.get(String(row.physio_id));
+        if (!profile) return null;
+        const distanceKm = Number(row.distance_km);
+        return { ...profile, distance: Number.isFinite(distanceKm) ? distanceKm.toFixed(1) + ' km away' : '' };
+      }).filter(Boolean);
       setNearbyDoctors(normalized);
       setNearby(normalized.length ? 'results' : 'empty');
       if (!normalized.length) setNearbyMessage('Sorry, no service is available within the providers’ configured service radius of this location. Try another location.');
