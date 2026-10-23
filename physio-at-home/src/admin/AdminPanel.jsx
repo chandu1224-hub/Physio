@@ -90,6 +90,41 @@ function Editor({ table, columns, row, onClose, onSaved }) {
   const [raw, setRaw] = useState("{\n  \n}");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [locationBusy, setLocationBusy] = useState(false);
+  const [locationMessage, setLocationMessage] = useState("");
+
+  async function lookupLocation() {
+    const query = String(values.service_location || "").trim();
+    if (!query) { setLocationMessage("Enter an address or area in Bengaluru, Karnataka first."); return; }
+    setLocationBusy(true);
+    setLocationMessage("");
+    try {
+      const response = await fetch("https://photon.komoot.io/api/?q=" + encodeURIComponent(query + ", Bengaluru, Karnataka, India") + "&limit=5");
+      if (!response.ok) throw new Error("Location lookup failed");
+      const json = await response.json();
+      const features = Array.isArray(json.features) ? json.features : [];
+      const feature = features.find((item) => {
+        const p = item.properties || {};
+        const state = String(p.state || "").toLowerCase();
+        const country = String(p.country || "").toLowerCase();
+        const area = [p.city, p.county, p.district, p.name].filter(Boolean).join(" ").toLowerCase();
+        return state.includes("karnataka") && country.includes("india") && /bengaluru|bangalore/.test(area);
+      });
+      const point = feature?.geometry?.coordinates;
+      if (!Array.isArray(point) || point.length < 2) {
+        setLocationMessage("Could not verify a Bengaluru, Karnataka result. Try a more specific Bangalore area or enter coordinates manually.");
+        return;
+      }
+      const p = feature.properties || {};
+      const label = [p.name, p.district, p.city, p.state, p.country].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(", ");
+      setValues((current) => ({ ...current, service_location: label || query, service_lng: Number(point[0]), service_lat: Number(point[1]) }));
+      setLocationMessage("Location found. Review the address and coordinates, then save the profile.");
+    } catch {
+      setLocationMessage("Location lookup is unavailable. You can enter latitude and longitude manually.");
+    } finally {
+      setLocationBusy(false);
+    }
+  }
 
   async function save(e) {
     e.preventDefault();
@@ -145,7 +180,30 @@ function Editor({ table, columns, row, onClose, onSaved }) {
             <label>Record as JSON
               <textarea rows={10} value={raw} onChange={(e) => setRaw(e.target.value)} />
             </label>
-          ) : columns.map((c) => {
+          ) : (
+            <>
+              <section className="ad-location-panel">
+                <h3>Service location</h3>
+                <p>Set the physiotherapist’s service base. For this test rollout, use Bengaluru, Karnataka. Nearby search uses the saved coordinates and service radius.</p>
+                <label>Address or area
+                  <input type="text" value={toInput(values.service_location)} onChange={(e) => setValues({ ...values, service_location: e.target.value })} placeholder="e.g. Indiranagar, Bengaluru, Karnataka" />
+                </label>
+                <button type="button" className="ad-btn" onClick={lookupLocation} disabled={locationBusy}>{locationBusy ? "Finding location…" : "Find coordinates from address"}</button>
+                {locationMessage && <p className="ad-muted" role="status">{locationMessage}</p>}
+                <div className="ad-location-grid">
+                  <label>Latitude
+                    <input type="number" step="any" value={toInput(values.service_lat)} onChange={(e) => setValues({ ...values, service_lat: e.target.value })} placeholder="12.9716" />
+                  </label>
+                  <label>Longitude
+                    <input type="number" step="any" value={toInput(values.service_lng)} onChange={(e) => setValues({ ...values, service_lng: e.target.value })} placeholder="77.5946" />
+                  </label>
+                  <label>Service radius (km)
+                    <input type="number" min="1" max="100" step="1" value={toInput(values.service_radius_km)} onChange={(e) => setValues({ ...values, service_radius_km: e.target.value })} />
+                  </label>
+                </div>
+                <p className="ad-muted">Only save verified provider locations for real profiles. Demo coordinates must remain test-only and must not be treated as a real clinic address.</p>
+              </section>
+              {columns.filter((c) => !["service_location", "service_lat", "service_lng", "service_radius_km"].includes(c)).map((c) => {
             const orig = row ? row[c] : EMPTY_PROFILE[c];
             if (typeof orig === "boolean") {
               return (
@@ -170,7 +228,9 @@ function Editor({ table, columns, row, onClose, onSaved }) {
                 )}
               </label>
             );
-          })}
+              })}
+            </>
+          )}
           {err && <p className="ad-err">{err}</p>}
         </div>
         <div className="ad-modal-foot">
