@@ -3,11 +3,21 @@ import { LogOut, Plus, Pencil, Trash2, X, Save, RefreshCw } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import "./admin.css";
 
-const TABLES = ["physiotherapists"];
+const TABLES = ["physiotherapists", "booking_requests", "therapist_applications"];
 const HIDDEN = ["id", "created_at", "updated_at"];
 const NUMBER_FIELDS = new Set(["experience_years", "price", "rating", "reviews", "display_order", "service_lat", "service_lng", "service_radius_km"]);
 const ARRAY_FIELDS = new Set(["specialties", "conditions", "services", "service_areas", "languages", "gallery_paths"]);
 // Known schema lets admins add the first profile without resorting to a raw JSON editor.
+const EMPTY_BY_TABLE = {
+  booking_requests: {
+    id: "", created_at: "", name: "", phone: "", area: "", condition: "",
+    care_type: "", preferred_time: "", notes: "", physio_id: "", consent: false, status: "new"
+  },
+  therapist_applications: {
+    id: "", created_at: "", name: "", phone: "", email: "", qualification: "",
+    experience_years: null, specialties: "", city: "", reg_no: "", about: "", consent: false, status: "new"
+  }
+};
 const EMPTY_PROFILE = {
   slug: "", name: "", initials: "", title: "Physiotherapist", degree: "",
   experience_years: 0, specialties: [], conditions: [], services: [],
@@ -82,7 +92,8 @@ function Editor({ table, columns, row, onClose, onSaved }) {
   const [values, setValues] = useState(() => {
     const v = {};
     columns.forEach((c) => {
-      const template = Object.prototype.hasOwnProperty.call(EMPTY_PROFILE, c) ? EMPTY_PROFILE[c] : "";
+      const tableTemplate = EMPTY_BY_TABLE[table] || EMPTY_PROFILE;
+      const template = Object.prototype.hasOwnProperty.call(tableTemplate, c) ? tableTemplate[c] : "";
       v[c] = row ? row[c] : template;
     });
     return v;
@@ -170,9 +181,9 @@ function Editor({ table, columns, row, onClose, onSaved }) {
         setBusy(false);
         return setErr("Longitude must be between -180 and 180.");
       }
-      if (radius != null && (!Number.isFinite(radius) || radius < 1 || radius > 100)) {
+      if (radius != null && (!Number.isFinite(radius) || radius <= 0 || radius > 50)) {
         setBusy(false);
-        return setErr("Service radius must be between 1 and 100 km.");
+        return setErr("Service radius must be greater than 0 and no more than 50 km.");
       }
     }
     const q = isNew
@@ -305,7 +316,7 @@ function Manager({ session }) {
 
   const columns = rows.length
     ? Object.keys(rows[0]).filter((k) => !HIDDEN.includes(k))
-    : Object.keys(EMPTY_PROFILE);
+    : Object.keys(EMPTY_BY_TABLE[table] || EMPTY_PROFILE).filter((k) => !HIDDEN.includes(k));
 
   async function remove(row) {
     if (!window.confirm("Delete this record? This cannot be undone.")) return;
@@ -338,14 +349,14 @@ function Manager({ session }) {
             <button key={t} className={t === table ? "on" : ""} onClick={() => setTable(t)}>{t}</button>
           ))}
         </div>
-        <button className="ad-btn ad-primary" onClick={() => setEditing({ row: null })}>
-          <Plus size={16} /> Add record
-        </button>
+        {table === "physiotherapists" && <button className="ad-btn ad-primary" onClick={() => setEditing({ row: null })}>
+          <Plus size={16} /> Add physiotherapist
+        </button>}
       </div>
 
       {err && <p className="ad-err">{err}</p>}
       {loading ? <p className="ad-muted">Loading records</p> : rows.length === 0 ? (
-        <p className="ad-muted">No records in {table}. Add the first one.</p>
+        <p className="ad-muted">No records in {table} yet.</p>
       ) : (
         <div className="ad-scroll">
           <table className="ad-table">
