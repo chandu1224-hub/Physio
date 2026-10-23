@@ -54,28 +54,29 @@ create policy "admins manage physiotherapists"
     select 1 from public.admins a where a.user_id = auth.uid()
   ));
 
--- 2. Remove table-wide grants from browser roles first. Column-level grants are revoked below.
-revoke all privileges on table public.admins from anon, authenticated;
-revoke all privileges on table public.booking_requests from anon, authenticated;
-revoke all privileges on table public.physiotherapists from anon, authenticated;
-revoke all privileges on table public.therapist_applications from anon, authenticated;
+-- 2. Remove table-wide grants from PUBLIC and browser roles first. PUBLIC matters because
+-- privileges inherited through PUBLIC also appear in has_table_privilege() checks.
+revoke all privileges on table public.admins from PUBLIC, anon, authenticated;
+revoke all privileges on table public.booking_requests from PUBLIC, anon, authenticated;
+revoke all privileges on table public.physiotherapists from PUBLIC, anon, authenticated;
+revoke all privileges on table public.therapist_applications from PUBLIC, anon, authenticated;
 
--- 3. Clear any column-level privileges for anon across all columns. This is important because
--- REVOKE ALL ON TABLE alone does not necessarily remove separately granted column privileges.
+-- 3. Clear separately granted column privileges for PUBLIC and both browser roles. A table-level
+-- REVOKE alone does not necessarily remove separately granted column privileges.
 revoke all privileges (user_id, created_at)
-  on table public.admins from anon;
+  on table public.admins from PUBLIC, anon, authenticated;
 revoke all privileges (id, created_at, name, phone, area, condition, care_type, preferred_time,
   notes, physio_id, consent, status)
-  on table public.booking_requests from anon;
+  on table public.booking_requests from PUBLIC, anon, authenticated;
 revoke all privileges (id, slug, name, initials, title, degree, experience_years, specialties,
   conditions, services, service_areas, languages, bio, full_bio, price, availability,
   contact_info, rating, reviews, emoji, color, photo_path, gallery_paths, display_order,
   featured, status, created_at, updated_at, published_at, service_location, service_lat,
   service_lng, service_radius_km)
-  on table public.physiotherapists from anon;
+  on table public.physiotherapists from PUBLIC, anon, authenticated;
 revoke all privileges (id, created_at, name, phone, email, qualification, experience_years,
   specialties, city, reg_no, about, consent, status)
-  on table public.therapist_applications from anon;
+  on table public.therapist_applications from PUBLIC, anon, authenticated;
 
 -- 4. Least privilege for anonymous visitors.
 -- Admins table: no access.
@@ -106,9 +107,8 @@ revoke truncate, references, trigger on table public.booking_requests from anon,
 revoke truncate, references, trigger on table public.physiotherapists from anon, authenticated;
 revoke truncate, references, trigger on table public.therapist_applications from anon, authenticated;
 
--- 7. Remove all anonymous column-level grants on private submissions, then grant INSERT at table
--- level only. This prevents SELECT/UPDATE column grants from accidentally surviving old grants.
--- The broad table grants above are already revoked; no public SELECT/UPDATE/DELETE is re-granted.
+-- 7. No additional private-submission grants are made. Column-level grants to PUBLIC, anon, and
+-- authenticated were cleared above; only the explicit table grants in sections 4–5 are restored.
 
 -- 8. Ensure RLS is enabled (this does not replace correct policies or grants).
 alter table public.admins enable row level security;
@@ -148,13 +148,26 @@ where schemaname = 'public'
   and tablename in ('admins','booking_requests','physiotherapists','therapist_applications')
 order by tablename, policyname;
 
--- B. Confirm browser-role table privileges (inspect unexpected privileges carefully).
+-- B. Inspect explicit table grants, including PUBLIC. Also run the effective-privilege query
+-- below because information_schema views alone may not show every inherited/effective grant.
 select grantee, table_name, privilege_type
 from information_schema.role_table_grants
 where table_schema = 'public'
   and table_name in ('admins','booking_requests','physiotherapists','therapist_applications')
-  and grantee in ('anon','authenticated')
+  and grantee in ('PUBLIC','anon','authenticated')
 order by table_name, grantee, privilege_type;
+
+-- B2. Effective privileges must show TRUNCATE=false for anon and authenticated on every table.
+select r.role_name, t.table_name,
+       has_table_privilege(r.role_name, 'public.' || t.table_name, 'SELECT') as can_select,
+       has_table_privilege(r.role_name, 'public.' || t.table_name, 'INSERT') as can_insert,
+       has_table_privilege(r.role_name, 'public.' || t.table_name, 'UPDATE') as can_update,
+       has_table_privilege(r.role_name, 'public.' || t.table_name, 'DELETE') as can_delete,
+       has_table_privilege(r.role_name, 'public.' || t.table_name, 'TRUNCATE') as can_truncate
+from (values ('anon'), ('authenticated')) as r(role_name)
+cross join (values ('admins'), ('booking_requests'), ('physiotherapists'),
+                   ('therapist_applications')) as t(table_name)
+order by t.table_name, r.role_name;
 
 -- C. Confirm public physiotherapist column grants (should be limited to the allowlist above).
 select grantee, table_name, column_name, privilege_type
