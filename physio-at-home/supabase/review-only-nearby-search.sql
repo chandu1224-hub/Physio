@@ -3,7 +3,7 @@
 -- been tested against a staging project with the exact production schema.
 -- Returns an explicit public-field allowlist; never returns p.* or to_jsonb(p).
 
-create or replace function public.physios_near(user_lat double precision, user_lng double precision)
+create or replace function public.physios_near(p_lat double precision, p_lng double precision)
 returns setof jsonb
 language plpgsql
 stable
@@ -11,9 +11,9 @@ security definer
 set search_path = pg_catalog
 as $function$
 begin
-  if user_lat is null or user_lng is null
-     or user_lat < -90 or user_lat > 90
-     or user_lng < -180 or user_lng > 180 then
+  if p_lat is null or p_lng is null
+     or p_lat < -90 or p_lat > 90
+     or p_lng < -180 or p_lng > 180 then
     raise exception 'Invalid latitude or longitude'
       using errcode = '22023';
   end if;
@@ -49,9 +49,9 @@ begin
       coalesce(p.service_radius_km, 10)::double precision as radius_km,
       6371.0 * acos(
         least(1.0, greatest(-1.0,
-          sin(radians(p.service_lat)) * sin(radians(user_lat))
-          + cos(radians(p.service_lat)) * cos(radians(user_lat))
-          * cos(radians(p.service_lng - user_lng))
+          sin(radians(p.service_lat)) * sin(radians(p_lat))
+          + cos(radians(p.service_lat)) * cos(radians(p_lat))
+          * cos(radians(p.service_lng - p_lng))
         ))
       ) as distance_km
     from public.physiotherapists as p
