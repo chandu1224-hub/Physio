@@ -119,17 +119,23 @@ alter table public.therapist_applications enable row level security;
 commit;
 
 -- ---------------------------------------------------------------------------
--- REQUIRED MANUAL REVIEW: SECURITY DEFINER nearby RPC
+-- SECURITY DEFINER nearby RPC hardening
 -- ---------------------------------------------------------------------------
--- Current reported function public.physios_near(p_lat double precision, p_lng double precision)
--- returns only (physio_id text, distance_km double precision), filters status='published',
--- checks coordinate ranges, and respects service_radius_km (default 10 km).
--- Its SECURITY DEFINER owner and effective grants must be inspected before deciding whether to
--- change it. This script intentionally does not replace the function or change its owner/ACL.
--- Prefer a fixed search_path such as 'pg_catalog, public' (and schema-qualified table references)
--- after confirming no behavior changes; only the function owner/authorized admin should alter it.
--- EXECUTE on the RPC is not by itself equivalent to access to the full table, but the function
--- owner and body are security-critical.
+-- Owner-reported live definition:
+--   public.physios_near(double precision, double precision)
+--   owner postgres; SECURITY DEFINER; search_path=public
+--   EXECUTE granted to anon, authenticated, service_role
+-- The body was inspected and returns only (physio_id text, distance_km double precision),
+-- filters status='published', validates latitude/longitude bounds, and respects service radius.
+--
+-- Because all table references in the current function body are schema-qualified
+-- (public.physiotherapists), and math functions are built-ins, a pg_catalog-only search_path
+-- avoids resolving untrusted objects from public. Keep EXECUTE for anon/authenticated because
+-- the public nearby-search UI calls this RPC. Do not change ownership or return columns here.
+-- This ALTER is still a production change and must only be applied after reviewing the exact
+-- deployed function body and confirming it matches the inspected definition.
+alter function public.physios_near(double precision, double precision)
+  set search_path = pg_catalog;
 
 -- ---------------------------------------------------------------------------
 -- POST-CHANGE VERIFICATION QUERIES (run after a separately approved migration)
@@ -166,7 +172,7 @@ where n.nspname = 'public'
   and c.relname in ('admins','booking_requests','physiotherapists','therapist_applications')
 order by c.relname;
 
--- E. Confirm RPC owner, security-definer flag, and function ACL for review.
+-- E. Confirm RPC owner, security-definer flag, fixed search_path, and function ACL.
 select p.oid::regprocedure as function_signature,
        r.rolname as function_owner,
        p.prosecdef as security_definer,
@@ -178,7 +184,17 @@ join pg_roles r on r.oid = p.proowner
 where n.nspname = 'public'
   and p.proname = 'physios_near';
 
--- F. Smoke tests to perform manually using anon and admin sessions:
+-- F. Confirm schema privileges do not allow untrusted roles to create objects in public.
+select n.nspname as schema_name, r.rolname as grantee,
+       has_schema_privilege(r.rolname, n.oid, 'USAGE') as has_usage,
+       has_schema_privilege(r.rolname, n.oid, 'CREATE') as has_create
+from pg_namespace n
+cross join pg_roles r
+where n.nspname = 'public'
+  and r.rolname in ('anon','authenticated','public')
+order by r.rolname;
+
+-- G. Smoke tests to perform manually using anon and admin sessions:
 --    1) Anonymous SELECT from booking_requests and therapist_applications must fail.
 --    2) Anonymous INSERT of a valid consented booking/application must work.
 --    3) Anonymous SELECT physiotherapists must return published rows only and only public columns.
@@ -186,3 +202,5 @@ where n.nspname = 'public'
 --    5) Admin can create/edit/publish/unpublish/delete a physio and read/manage submissions.
 --    6) Nearby RPC returns only published provider IDs within each provider's configured radius.
 --    7) Verify no private booking/application fields appear in browser network responses.
+--    8) Confirm the function's deployed definition exactly matches the reviewed body before
+--       applying the ALTER FUNCTION search_path change.
