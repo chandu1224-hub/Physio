@@ -4,7 +4,7 @@
 -- disposable/staging database before applying. Keep a database backup and a rollback plan.
 --
 -- Goals:
---   * Public visitors can read only published physiotherapist public fields.
+--   * Anonymous visitors can read only published physiotherapist public fields.
 --   * Anonymous visitors can submit booking requests and therapist applications, but cannot
 --     read/update/delete existing submissions or access their private fields.
 --   * Authenticated admins retain CRUD through the existing admins-table membership policies.
@@ -33,11 +33,14 @@ drop policy if exists "admins manage all" on public.physiotherapists;
 -- Remove duplicate admin self-read policy. Retain the canonical equivalent.
 drop policy if exists "admin reads own row" on public.admins;
 
--- Recreate one explicit public listing policy and one admin write policy.
+-- Recreate one explicit anonymous public listing policy and one admin-only management policy.
+-- Do NOT include authenticated in the public listing policy: authenticated is used by the admin
+-- panel, and its table-level grants include private admin fields. The admin ALL policy below
+-- grants access only when auth.uid() has a matching row in public.admins.
 create policy "public reads published physiotherapists"
   on public.physiotherapists
   for select
-  to anon, authenticated
+  to anon
   using (status = 'published');
 
 create policy "admins manage physiotherapists"
@@ -89,7 +92,8 @@ grant select (
   published_at, service_location, service_lat, service_lng, service_radius_km
 ) on table public.physiotherapists to anon;
 
--- 5. Authenticated users need table privileges for the admin UI; RLS must restrict them to admins.
+-- 5. Authenticated users need table privileges for the admin UI; RLS must restrict physiotherapist
+--    access to admins only. The public listing policy applies to anon, not authenticated.
 -- Public form submissions may also come from authenticated clients.
 grant select on table public.admins to authenticated;
 grant select, insert, update, delete on table public.booking_requests to authenticated;
