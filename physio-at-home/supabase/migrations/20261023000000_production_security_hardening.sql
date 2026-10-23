@@ -26,8 +26,21 @@ create policy "admins manage physiotherapists"
     exists (select 1 from public.admins a where a.user_id = (select auth.uid()))
   );
 
--- Remove duplicate admin self-read policy.
+-- Optimize auth.uid() evaluation and keep a single admin self-read policy.
 drop policy if exists "admin reads own row" on public.admins;
+drop policy if exists "admins read own row" on public.admins;
+create policy "admins read own row" on public.admins for select to authenticated using (user_id = (select auth.uid()));
+
+-- Restrict public form submissions to anonymous INSERT only; admin access is separate.
+drop policy if exists "admin manages bookings" on public.booking_requests;
+create policy "admin manages bookings" on public.booking_requests for all to authenticated using (exists (select 1 from public.admins a where a.user_id = (select auth.uid()))) with check (exists (select 1 from public.admins a where a.user_id = (select auth.uid())));
+drop policy if exists "public can submit booking" on public.booking_requests;
+create policy "public can submit booking" on public.booking_requests for insert to anon with check (status = 'new' and consent = true);
+
+drop policy if exists "admin manages applications" on public.therapist_applications;
+create policy "admin manages applications" on public.therapist_applications for all to authenticated using (exists (select 1 from public.admins a where a.user_id = (select auth.uid()))) with check (exists (select 1 from public.admins a where a.user_id = (select auth.uid())));
+drop policy if exists "public can apply" on public.therapist_applications;
+create policy "public can apply" on public.therapist_applications for insert to anon with check (status = 'new' and consent = true);
 
 -- Remove broad client grants, including dangerous TRUNCATE/REFERENCES/TRIGGER rights.
 revoke all privileges on table public.admins from public, anon, authenticated;
