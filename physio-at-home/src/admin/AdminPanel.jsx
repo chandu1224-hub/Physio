@@ -18,6 +18,16 @@ const EMPTY_BY_TABLE = {
     experience_years: null, specialties: "", city: "", reg_no: "", about: "", consent: false, status: "new"
   }
 };
+const EMPTY_BY_TABLE = {
+  booking_requests: {
+    id: "", created_at: "", name: "", phone: "", area: "", condition: "",
+    care_type: "", preferred_time: "", notes: "", physio_id: "", consent: false, status: "new"
+  },
+  therapist_applications: {
+    id: "", created_at: "", name: "", phone: "", email: "", qualification: "",
+    experience_years: null, specialties: "", city: "", reg_no: "", about: "", consent: false, status: "new"
+  }
+};
 const EMPTY_PROFILE = {
   slug: "", name: "", initials: "", title: "Physiotherapist", degree: "",
   experience_years: 0, specialties: [], conditions: [], services: [],
