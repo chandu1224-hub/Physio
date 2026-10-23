@@ -120,25 +120,27 @@ function Editor({ table, columns, row, onClose, onSaved }) {
     setLocationBusy(true);
     setLocationMessage("");
     try {
-      const response = await fetch("https://photon.komoot.io/api/?q=" + encodeURIComponent(query + ", India") + "&limit=8");
+      const response = await fetch("https://photon.komoot.io/api/?q=" + encodeURIComponent(query + ", Bengaluru, Karnataka, India") + "&limit=8");
       if (!response.ok) throw new Error("Location lookup failed");
       const json = await response.json();
       const features = Array.isArray(json.features) ? json.features : [];
       const feature = features.find((item) => {
         const p = item.properties || {};
         return String(p.country || "").toLowerCase() === "india"
+          && String(p.state || "").toLowerCase().includes("karnataka")
+          && /bengaluru|bangalore/i.test([p.name, p.city, p.district, p.county].filter(Boolean).join(" "))
           && Array.isArray(item.geometry?.coordinates)
           && item.geometry.coordinates.length >= 2;
       });
       const point = feature?.geometry?.coordinates;
       if (!Array.isArray(point) || point.length < 2) {
-        setLocationMessage("Could not verify this location in India. Try a more specific area, city and state, or enter coordinates manually.");
+        setLocationMessage("Could not verify a Bengaluru, Karnataka location. Enter a Bengaluru neighbourhood or area and try again.");
         return;
       }
       const p = feature.properties || {};
       const label = [p.name, p.district, p.city, p.state, p.country].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(", ");
       setValues((current) => ({ ...current, service_location: label || query, service_lng: Number(point[0]), service_lat: Number(point[1]) }));
-      setLocationMessage("Location found in India. Review the address and coordinates, then save the profile.");
+      setLocationMessage("Bengaluru location found. Review the area and coordinates, then save the profile.");
     } catch {
       setLocationMessage("Location lookup is unavailable. You can enter latitude and longitude manually.");
     } finally {
