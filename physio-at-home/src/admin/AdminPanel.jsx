@@ -35,11 +35,23 @@ function toInput(value) {
 }
 
 function fromInput(original, text, field) {
-  if (typeof original === "boolean" || field === "featured") return text === true || text === "true";
+  if (typeof original === "boolean" || field === "featured" || field === "consent") return text === true || text === "true";
   if (typeof original === "number" || NUMBER_FIELDS.has(field)) return text === "" ? null : Number(text);
-  if ((original !== null && typeof original === "object") || ARRAY_FIELDS.has(field)) {
+  // Some tables store "specialties" as plain text while provider profiles use arrays.
+  const expectsJson = (original !== null && typeof original === "object") || Array.isArray(original) || (ARRAY_FIELDS.has(field) && Array.isArray(original));
+  if (expectsJson) {
     if (text === "" && field === "published_at") return null;
-    try { return JSON.parse(text); } catch { return original ?? []; }
+    if (text === "") return [];
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(original) && !Array.isArray(parsed)) {
+        throw new Error(`Field "${field}" must be a JSON array.`);
+      }
+      return parsed;
+    } catch (error) {
+      if (error instanceof SyntaxError) throw new Error(`Field "${field}" must contain valid JSON.`);
+      throw error;
+    }
   }
   return text === "" ? null : text;
 }
@@ -148,10 +160,15 @@ function Editor({ table, columns, row, onClose, onSaved }) {
     } else {
       payload = {};
       const tableTemplate = EMPTY_BY_TABLE[table] || EMPTY_PROFILE;
-      columns.forEach((c) => {
-        const original = row ? row[c] : tableTemplate[c];
-        payload[c] = fromInput(original, values[c], c);
-      });
+      try {
+        columns.forEach((c) => {
+          const original = row ? row[c] : tableTemplate[c];
+          payload[c] = fromInput(original, values[c], c);
+        });
+      } catch (error) {
+        setBusy(false);
+        return setErr(error.message || "One or more fields have an invalid value.");
+      }
       if (table === "physiotherapists" && isNew) {
         if (!String(payload.name || "").trim()) {
           setBusy(false);
