@@ -185,6 +185,34 @@ function Editor({ table, columns, row, onClose, onSaved }) {
         if (!payload.status) payload.status = "draft";
       }
     }
+    for (const field of NUMBER_FIELDS) {
+      if (!Object.prototype.hasOwnProperty.call(payload, field)) continue;
+      const value = payload[field];
+      if (value != null && !Number.isFinite(value)) {
+        setBusy(false);
+        return setErr(`Field "${field}" must be a valid number.`);
+      }
+    }
+    if (payload.experience_years != null && payload.experience_years < 0) {
+      setBusy(false);
+      return setErr("Experience years cannot be negative.");
+    }
+    if (payload.price != null && payload.price < 0) {
+      setBusy(false);
+      return setErr("Price cannot be negative.");
+    }
+    if (payload.rating != null && (payload.rating < 0 || payload.rating > 5)) {
+      setBusy(false);
+      return setErr("Rating must be between 0 and 5.");
+    }
+    if (payload.reviews != null && payload.reviews < 0) {
+      setBusy(false);
+      return setErr("Review count cannot be negative.");
+    }
+    if (payload.display_order != null && payload.display_order < 0) {
+      setBusy(false);
+      return setErr("Display order cannot be negative.");
+    }
     if (table === "physiotherapists") {
       const lat = payload.service_lat;
       const lng = payload.service_lng;
