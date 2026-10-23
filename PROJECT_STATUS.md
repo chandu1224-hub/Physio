@@ -128,3 +128,9 @@
 - Added browser-side name length checks and autocomplete hints, capped phone input at 20 characters, and aligned the phone pattern with the known database constraint. The address input now has a maximum length.
 - This improves feedback before the booking insert, but it is not a substitute for database constraints, anti-spam/rate limiting, or server-side validation. The booking persistence and WhatsApp handoff still need end-to-end staging tests.
 - Latest admin JSON validation and table-specific form field fixes are committed on `work/production-readiness`; CI for the most recent booking form commit must be checked before claiming that exact commit is build-verified.
+
+
+### Admin numeric validation follow-up — 2026-10-23
+- Added save-time validation for numeric admin fields: values must be finite numbers; experience, price, review count, and display order cannot be negative; ratings must be between 0 and 5.
+- This is client-side input validation only. Database constraints remain the authoritative guard and should be verified against the actual staging schema.
+- Commit: `ace9b1bbdd9133c40adadf9d6b14d389d6e518f3`. CI must pass for this exact commit before considering the source change build-verified.
