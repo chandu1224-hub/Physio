@@ -24,7 +24,7 @@ const EMPTY_PROFILE = {
   service_areas: [], languages: [], bio: "", full_bio: "", price: 0,
   availability: "", contact_info: "", rating: 0, reviews: 0, emoji: "🧑‍⚕️",
   color: "sage", photo_path: "", gallery_paths: [], display_order: 0,
-  featured: false, status: "draft", published_at: null, service_location: "",
+  featured: false, status: "draft", published_at: null, service_location: "Bengaluru, Karnataka, India",
   service_lat: null, service_lng: null, service_radius_km: 10
 };
 
