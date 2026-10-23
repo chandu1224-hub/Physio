@@ -26,7 +26,7 @@
 - The admin checks the `admins` table in the client, but authorization must be enforced by Supabase RLS as well; client-side checks alone are not a security boundary.
 - `physio-at-home/package.json` has a build script but no test/lint scripts and uses `latest` for React, Vite and the Vite React plugin. Pinning dependencies and adding CI checks should be considered after a baseline build is verified.
 - `physio-at-home/src/lib/supabase.js` calls `createClient(url, key)` even when environment variables are missing, which may cause a runtime initialization error instead of a controlled configuration screen.
-- The booking flow opens WhatsApp and correctly says the user must send the message and await confirmation; it does not persist a booking to a database. Keep this limitation explicit unless a real booking workflow is implemented.
+- The current booking handler attempts to insert a consented request into `booking_requests` before opening WhatsApp. If persistence fails, it closes the pending WhatsApp window and tells the user to retry. This flow still needs end-to-end staging verification against the deployed schema, RLS policies, and grants.
 - `physio-at-home/README.md` explicitly describes the current app as a frontend prototype with sample data and no real geospatial matching or booking persistence.
 
 ## Verification status
