@@ -98,3 +98,12 @@
 - Added `physio-at-home/supabase/security-audit-read-only.sql`. It only reads PostgreSQL metadata for RLS enablement, policies, table/column grants, table columns, and the nearby-search function definition/EXECUTE grants. It makes no schema, policy, privilege, or data changes.
 - Next database step is to run this inventory in a staging project (or review its output before any production security change), then design a least-privilege migration. Do not apply the audit as a migration; it is a set of read-only SELECT statements.
 - Latest CI run for the branch reported success: https://github.com/chandu1224-hub/Physio/actions/runs/39979506514
+
+## Nearby-search review — 2026-10-23
+- Verified the latest CI run for the security-audit preparation commit completed successfully: https://github.com/chandu1224-hub/Physio/actions/runs/39979767259
+- Verified the canonical frontend calls `public.physios_near(user_lat, user_lng)`, normalizes the returned JSON rows, and guards against stale asynchronous search results.
+- Adjusted the no-results message to refer to providers' configured service radius rather than claiming every provider has exactly a 10 km radius.
+- Important live-data blocker: the five existing physiotherapist rows previously inspected have NULL service coordinates, so nearby search will return no matches until accurate provider locations are entered and verified. Do not invent coordinates or geocode a clinic/home location without the provider's confirmation.
+- Nearby-search SQL remains a review-only proposal and has not been executed. The read-only audit SQL must be run in the correct Supabase SQL Editor context and its output reviewed before drafting a schema-specific least-privilege migration.
+- Security blocker remains: prior user-provided grant/policy output showed broad client table privileges and a permissive public-read policy on physiotherapists. Confirm RLS enablement, complete policies, grants, and the deployed `physios_near` definition using the audit queries before any migration. Never apply a guessed migration to production.
+- Current CI success establishes install/build only. It does not prove runtime Supabase RPC availability, geocoding reliability, browser geolocation behavior, accessibility, verified provider credentials, or production security.
