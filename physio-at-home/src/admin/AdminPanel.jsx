@@ -122,10 +122,15 @@ function Editor({ table, columns, row, onClose, onSaved }) {
     const q = isNew
       ? supabase.from(table).insert(payload)
       : supabase.from(table).update(payload).eq("id", row.id);
-    const { error } = await q;
-    setBusy(false);
-    if (error) setErr(error.message);
-    else onSaved();
+    try {
+      const { error } = await q;
+      if (error) setErr(error.message);
+      else onSaved();
+    } catch {
+      setErr("Could not save this profile. Check your connection and permissions.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
