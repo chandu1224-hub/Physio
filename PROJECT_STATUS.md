@@ -74,7 +74,7 @@
 
 ### Still release-blocking
 - Production Supabase grants and RLS policies remain unsafe/incompletely verified based on the dashboard outputs supplied by the user. The existing permissive `using (true)` provider policy may expose unpublished rows and private columns to direct table queries; application-side field allowlists do not fix database access.
-- Nearby search is not yet connected end-to-end in the canonical frontend. The separate `physio-location/` SQL is incompatible with the production schema and must not be run as-is.
+- The canonical nearby-search UI now requests browser geolocation or accepts a typed area/address, geocodes typed locations through Photon, and calls the `physios_near` RPC. It no longer pretends sample doctors are nearby. This is not production-ready until the RPC is reviewed/deployed in staging and the providers have verified coordinates. The separate `physio-location/` SQL is incompatible with the production schema and must not be run as-is.
 - The five existing provider rows have no verified service coordinates. Do not invent locations or claim these clinicians are verified.
 - Booking currently opens WhatsApp and does not persist to `booking_requests`.
 - No staging RLS tests, browser regression suite, production SQL execution, merge, or deployment has been performed.
@@ -82,7 +82,13 @@
 ### Next safe sequence
 1. Prepare a complete staging-only RLS/grant migration based on verified live policy and privilege inventory; retain least-privilege admin CRUD while blocking public access to private fields.
 2. Test anonymous, non-admin authenticated, and admin access in staging.
-3. Integrate the canonical nearby UI with the RPC and a manual location search, showing no-service/error states rather than demo matches.
+3. Review and test the nearby RPC in staging, including malformed coordinates, distance boundary cases, and public-field output.
 4. Add verified provider coordinates and test 10 km radius behavior.
 5. Decide whether bookings should remain WhatsApp-only or be stored with server-side validation.
 6. Run the build and browser regression tests, then present a PR for approval. No production SQL, merge, or deployment without explicit approval.
+
+
+### Nearby UI implementation note — 2026-10-23
+- Replaced the simulated radar-to-sample-results flow in `physio-at-home/src/main.jsx` with a real geolocation/manual-location flow. It invokes `physios_near(user_lat, user_lng)`, maps only returned nearby rows, and shows no-service or configuration/error states instead of fallback profiles.
+- Added responsive styles for typed location search in `physio-at-home/src/styles.css`.
+- The RPC SQL remains review-only and has not been run in production. Existing provider coordinates are NULL, so the real search should return no matches until correct, verified coordinates are saved. Do not deploy this feature before staging integration tests.
