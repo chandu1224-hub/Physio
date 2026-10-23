@@ -15,7 +15,7 @@ Scope: source review of `physio-at-home/` and the separate `physio-location/` im
 
 - The reported table grants include broad privileges for both `anon` and `authenticated` on `admins`, `booking_requests`, and `physiotherapists`.
 - The reported `physiotherapists` SELECT policies include both a `using (true)` policy and a `using (status = 'published')` policy. Permissive policies combine with OR, so the `using (true)` policy defeats the publication-only restriction.
-- The canonical booking form currently does not need public INSERT access to `booking_requests`. Before removing any grants, search every active deployment and confirm no external form, Edge Function, automation, or separate frontend inserts into that table.
+- The canonical booking form currently uses public INSERT access to `booking_requests`. Preserve only the minimum required INSERT privilege and RLS policy after verifying the live schema and constraints. Before changing grants, confirm no other active deployment or external integration depends on additional access.
 - RLS enablement and all policies still need direct verification. No SQL migration has been executed by this review.
 
 ## Recommended remediation sequence
