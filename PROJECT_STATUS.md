@@ -92,3 +92,9 @@
 - Replaced the simulated radar-to-sample-results flow in `physio-at-home/src/main.jsx` with a real geolocation/manual-location flow. It invokes `physios_near(user_lat, user_lng)`, maps only returned nearby rows, and shows no-service or configuration/error states instead of fallback profiles.
 - Added responsive styles for typed location search in `physio-at-home/src/styles.css`.
 - The RPC SQL remains review-only and has not been run in production. Existing provider coordinates are NULL, so the real search should return no matches until correct, verified coordinates are saved. Do not deploy this feature before staging integration tests.
+
+
+### Security audit preparation — 2026-10-23
+- Added `physio-at-home/supabase/security-audit-read-only.sql`. It only reads PostgreSQL metadata for RLS enablement, policies, table/column grants, table columns, and the nearby-search function definition/EXECUTE grants. It makes no schema, policy, privilege, or data changes.
+- Next database step is to run this inventory in a staging project (or review its output before any production security change), then design a least-privilege migration. Do not apply the audit as a migration; it is a set of read-only SELECT statements.
+- Latest CI run for the branch reported success: https://github.com/chandu1224-hub/Physio/actions/runs/39979506514
