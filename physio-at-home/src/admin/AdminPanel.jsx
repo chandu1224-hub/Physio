@@ -34,11 +34,12 @@ function toInput(value) {
   return String(value);
 }
 
-function fromInput(original, text, field) {
+function fromInput(original, text, field, table) {
   if (typeof original === "boolean" || field === "featured" || field === "consent") return text === true || text === "true";
   if (typeof original === "number" || NUMBER_FIELDS.has(field)) return text === "" ? null : Number(text);
   // Some tables store "specialties" as plain text while provider profiles use arrays.
-  const expectsJson = (original !== null && typeof original === "object") || Array.isArray(original) || (ARRAY_FIELDS.has(field) && Array.isArray(original));
+  const expectsJson = (original !== null && typeof original === "object") || Array.isArray(original) ||
+    (ARRAY_FIELDS.has(field) && !(table === "therapist_applications" && field === "specialties"));
   if (expectsJson) {
     if (text === "" && field === "published_at") return null;
     if (text === "") return [];
@@ -163,7 +164,7 @@ function Editor({ table, columns, row, onClose, onSaved }) {
       try {
         columns.forEach((c) => {
           const original = row ? row[c] : tableTemplate[c];
-          payload[c] = fromInput(original, values[c], c);
+          payload[c] = fromInput(original, values[c], c, table);
         });
       } catch (error) {
         setBusy(false);
