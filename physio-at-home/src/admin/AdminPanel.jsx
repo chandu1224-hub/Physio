@@ -3,8 +3,18 @@ import { LogOut, Plus, Pencil, Trash2, X, Save, RefreshCw } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 import "./admin.css";
 
-const TABLES = ["physiotherapists"]; // add more table names here to manage them too
+const TABLES = ["physiotherapists"];
 const HIDDEN = ["id", "created_at", "updated_at"];
+// Known schema lets admins add the first profile without resorting to a raw JSON editor.
+const EMPTY_PROFILE = {
+  slug: "", name: "", initials: "", title: "Physiotherapist", degree: "",
+  experience_years: 0, specialties: [], conditions: [], services: [],
+  service_areas: [], languages: [], bio: "", full_bio: "", price: 0,
+  availability: "", contact_info: "", rating: 0, reviews: 0, emoji: "🧑‍⚕️",
+  color: "sage", photo_path: "", gallery_paths: [], display_order: 0,
+  featured: false, status: "draft", published_at: null, service_location: "",
+  service_lat: null, service_lng: null, service_radius_km: 10
+};
 
 function toInput(value) {
   if (value === null || value === undefined) return "";
@@ -68,7 +78,10 @@ function Editor({ table, columns, row, onClose, onSaved }) {
   const isNew = !row;
   const [values, setValues] = useState(() => {
     const v = {};
-    columns.forEach((c) => { v[c] = row ? row[c] : ""; });
+    columns.forEach((c) => {
+      const template = Object.prototype.hasOwnProperty.call(EMPTY_PROFILE, c) ? EMPTY_PROFILE[c] : "";
+      v[c] = row ? row[c] : template;
+    });
     return v;
   });
   const [raw, setRaw] = useState("{\n  \n}");
@@ -85,8 +98,23 @@ function Editor({ table, columns, row, onClose, onSaved }) {
     } else {
       payload = {};
       columns.forEach((c) => {
-        payload[c] = row ? fromInput(row[c], values[c]) : (values[c] === "" ? null : values[c]);
+        const original = row ? row[c] : EMPTY_PROFILE[c];
+        payload[c] = fromInput(original, values[c]);
       });
+      if (table === "physiotherapists" && isNew) {
+        if (!String(payload.name || "").trim()) {
+          setBusy(false);
+          return setErr("Physiotherapist name is required.");
+        }
+        payload.name = String(payload.name).trim();
+        payload.slug = String(payload.slug || payload.name.toLowerCase().trim()
+          .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")).trim();
+        if (!payload.slug) {
+          setBusy(false);
+          return setErr("Add a valid profile slug.");
+        }
+        if (!payload.status) payload.status = "draft";
+      }
     }
     const q = isNew
       ? supabase.from(table).insert(payload)
@@ -110,7 +138,7 @@ function Editor({ table, columns, row, onClose, onSaved }) {
               <textarea rows={10} value={raw} onChange={(e) => setRaw(e.target.value)} />
             </label>
           ) : columns.map((c) => {
-            const orig = row ? row[c] : undefined;
+            const orig = row ? row[c] : EMPTY_PROFILE[c];
             if (typeof orig === "boolean") {
               return (
                 <label key={c} className="ad-check">
@@ -186,7 +214,9 @@ function Manager({ session }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const columns = rows.length ? Object.keys(rows[0]).filter((k) => !HIDDEN.includes(k)) : [];
+  const columns = rows.length
+    ? Object.keys(rows[0]).filter((k) => !HIDDEN.includes(k))
+    : Object.keys(EMPTY_PROFILE);
 
   async function remove(row) {
     if (!window.confirm("Delete this record? This cannot be undone.")) return;
