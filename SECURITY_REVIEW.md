@@ -7,7 +7,7 @@ Scope: source review of `physio-at-home/` and the separate `physio-location/` im
 
 - Canonical Netlify publish root: `physio-at-home/`.
 - The current booking handler in `physio-at-home/src/main.jsx` inserts a new request into `public.booking_requests` after consent, then opens WhatsApp. This needs end-to-end staging validation and narrowly scoped public INSERT permissions with RLS.
-- The canonical admin panel currently manages `physiotherapists` only. It performs insert/update/delete operations after sign-in and checks whether the signed-in user has a row in `public.admins`. Database RLS must enforce this independently.
+- The canonical admin panel exposes management tabs for `physiotherapists`, `booking_requests`, and `therapist_applications`; it performs table CRUD after sign-in and checks whether the signed-in user has a row in `public.admins`. This client-side check is only a UX gate; database RLS and grants must enforce authorization independently. Verify all three tables and every policy in staging.
 - The canonical public provider hook now requests a named list of public-facing columns and filters `status = 'published'`. The public-facing list deliberately excludes `contact_info` and `full_bio`.
 - The separate `physio-location/sql/setup.sql` function `public.physios_near` currently aggregates `to_jsonb(t)` from a query selecting `p.*`. If deployed, this can return every column from the provider row to callers with execute permission, including fields not intended for public display. It also uses `latitude`/`longitude`/ `published` conventions that do not match the production schema supplied for the canonical app (`service_lat`/`service_lng`/`status`). Do not run that setup script against production as-is.
 
@@ -44,3 +44,10 @@ Scope: source review of `physio-at-home/` and the separate `physio-location/` im
 - The public profile hook's explicit column selection omits the exact service coordinates. Those coordinates are used only by the server-side nearby lookup; never expose provider base coordinates to anonymous clients.
 - Improved the admin editor's empty-table workflow so it uses known field templates instead of falling back to raw JSON, and scoped the service-location controls to physiotherapist profiles rather than booking/application records.
 - These are repository changes only. No migration or SQL statement has been executed against the user's Supabase project. Before applying the migration, validate every referenced column against the read-only audit output and test anonymous, non-admin authenticated, and admin flows in staging.
+
+
+## Admin editor validation follow-up — 2026-10-23
+- Fixed new-record form controls to use each table's own schema template, so boolean fields (such as consent) render as checkboxes and application specialties retain their text field behavior.
+- Matched the service-radius input's UI maximum to the save-time validation maximum (50 km).
+- Added JSON parsing validation that reports invalid JSON rather than silently replacing the user's value with the original field value.
+- CI for the booking-form validation commit succeeded. The latest admin-control fix has new CI runs pending; verify those runs before claiming the latest commit is build-verified.
