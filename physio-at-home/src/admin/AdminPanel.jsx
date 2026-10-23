@@ -154,6 +154,27 @@ function Editor({ table, columns, row, onClose, onSaved }) {
         if (!payload.status) payload.status = "draft";
       }
     }
+    if (table === "physiotherapists") {
+      const lat = payload.service_lat;
+      const lng = payload.service_lng;
+      const radius = payload.service_radius_km;
+      if ((lat == null) !== (lng == null)) {
+        setBusy(false);
+        return setErr("Enter both latitude and longitude, or leave both blank.");
+      }
+      if (lat != null && (!Number.isFinite(lat) || lat < -90 || lat > 90)) {
+        setBusy(false);
+        return setErr("Latitude must be between -90 and 90.");
+      }
+      if (lng != null && (!Number.isFinite(lng) || lng < -180 || lng > 180)) {
+        setBusy(false);
+        return setErr("Longitude must be between -180 and 180.");
+      }
+      if (radius != null && (!Number.isFinite(radius) || radius < 1 || radius > 100)) {
+        setBusy(false);
+        return setErr("Service radius must be between 1 and 100 km.");
+      }
+    }
     const q = isNew
       ? supabase.from(table).insert(payload)
       : supabase.from(table).update(payload).eq("id", row.id);
