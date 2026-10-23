@@ -199,13 +199,24 @@ function App(){
     setNearby('searching');
     setNearbyMessage('');
     try {
-      const response = await fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=1');
+      const response = await fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(q + ', Bengaluru, Karnataka, India') + '&limit=5');
       if (!response.ok) throw new Error('Geocoding failed');
       const json = await response.json();
-      const feature = json && json.features && json.features[0];
+      const features = Array.isArray(json?.features) ? json.features : [];
+      // This service currently operates in Bengaluru only. Never geocode a result
+      // from another city and accidentally use it for a local provider search.
+      const feature = features.find((item) => {
+        const p = item?.properties || {};
+        const city = String(p.city || p.name || '').toLowerCase();
+        const district = String(p.district || '').toLowerCase();
+        const state = String(p.state || '').toLowerCase();
+        const country = String(p.country || '').toLowerCase();
+        return country === 'india' && state.includes('karnataka') &&
+          (city.includes('bengaluru') || city.includes('bangalore') || district.includes('bengaluru') || district.includes('bangalore'));
+      });
       const point = feature && feature.geometry && feature.geometry.coordinates;
       if (!Array.isArray(point) || point.length < 2 || !Number.isFinite(Number(point[0])) || !Number.isFinite(Number(point[1]))) {
-        if (id === runId.current) { setNearby('manual'); setNearbyMessage('We could not find that location. Try a more specific area or address.'); }
+        if (id === runId.current) { setNearby('manual'); setNearbyMessage('We could not find that Bengaluru location. This service currently covers Bengaluru, Karnataka only. Try a more specific Bengaluru area or address.'); }
         return;
       }
       if (id !== runId.current) return;
@@ -232,7 +243,7 @@ function App(){
   {splash&&<div className="splash"><div className="splash-logo"><span className="brand-mark big"><Activity size={30}/></span><div className="splash-name">physio <i>at home</i></div></div><div className="splash-line"><span/></div><p>Care that comes to you.</p></div>}
  <header className="header"><div className="nav wrap"><Brand/><nav className={menuOpen?'nav-links open':'nav-links'}><a href="#how" onClick={()=>setMenuOpen(false)}>How it works</a><a href="#care" onClick={()=>setMenuOpen(false)}>Conditions</a><a href="#physios" onClick={()=>setMenuOpen(false)}>Our physios</a><a href="#faq" onClick={()=>setMenuOpen(false)}>FAQs</a><a className="nav-cta" href={waLink('Hi! I need help booking a physiotherapist.')} target="_blank" rel="noreferrer"><MessageCircle size={16}/> Talk to us</a></nav><button className="menu-toggle" onClick={()=>setMenuOpen(!menuOpen)} aria-label="Toggle navigation">{menuOpen?<X/>:<Menu/>}</button></div></header>
  <main>
- <section className="hero" id="home"><div className="hero-glow"/><div className="wrap hero-grid"><div className="hero-copy"><div className="eyebrow"><span className="eyebrow-dot"/> PHYSIOTHERAPY, REIMAGINED</div><h1>A licensed physio,<br/><em>at your door</em> in 30<br className="desktop-break"/> minutes.</h1><p className="hero-sub">Tap where it hurts, confirm your address, and let a nearby physiotherapist come to you — care that fits your life, from start to finish.</p><div className="hero-actions"><a className="btn btn-primary" href="#find">Find nearby physio <ArrowRight size={18}/></a><button className="outline-btn" onClick={()=>{setPage('join');window.scrollTo(0,0)}}>Join as Physiotherapist</button><a className="text-link" href="#how">See how it works <ArrowDownRight size={17}/></a></div><div className="hero-proof"><div><strong>30 <small>min</small></strong><span>average target arrival*</span></div><div><strong>100%</strong><span>profile-led discovery</span></div><div><strong>4.9<small>★</small></strong><span>sample rating</span></div></div><p className="disclaimer">*Illustrative demo claim. Actual availability and arrival time depend on your location.</p></div>
+ <section className="hero" id="home"><div className="hero-glow"/><div className="wrap hero-grid"><div className="hero-copy"><div className="eyebrow"><span className="eyebrow-dot"/> PHYSIOTHERAPY, REIMAGINED</div><h1>Find physiotherapy<br/><em>that fits your life.</em></h1><p className="hero-sub">Explore physiotherapist profiles and request home, clinic or online care in Bengaluru. The team will confirm provider availability and appointment details with you.</p><div className="hero-actions"><a className="btn btn-primary" href="#find">Find nearby physio <ArrowRight size={18}/></a><button className="outline-btn" onClick={()=>{setPage('join');window.scrollTo(0,0)}}>Join as Physiotherapist</button><a className="text-link" href="#how">See how it works <ArrowDownRight size={17}/></a></div><div className="hero-proof"><div><strong>3 <small>ways</small></strong><span>home, clinic or online</span></div><div><strong>1:1</strong><span>request coordination</span></div><div><strong>BLR</strong><span>Bengaluru service area</span></div></div><p className="disclaimer">Demo platform: profiles, credentials, prices, ratings and availability are illustrative until individually verified.</p></div>
  <div className="hero-visual"><div className="visual-orbit orbit-one"/><div className="visual-orbit orbit-two"/><div className="hero-card top-card"><span className="mini-icon"><ShieldCheck size={16}/></span><div><b>Care, made personal</b><small>Find the right kind of support</small></div><span className="tiny-check"><Check size={13}/></span></div><div className="hero-person"><div className="person-halo"/><div className="person-emoji">🧑🏻‍⚕️</div><div className="person-spark spark-a">✦</div><div className="person-spark spark-b">✳</div><div className="home-base"><span><Activity size={22}/></span><div><b>Good care starts here</b><small>At your place. At your pace.</small></div></div></div><div className="hero-card floating-card"><div className="avatar-stack"><span>👩🏻‍⚕️</span><span>👨🏽‍⚕️</span><span>👩🏽‍⚕️</span></div><div><b>Care for your needs</b><small>Browse 5 sample profiles</small></div><span className="online-dot"/></div><div className="float-label label-left"><Heart size={15}/> A little care goes far</div><div className="float-label label-right"><MapPin size={15}/> Care comes to you</div></div></div>   </section>  {nearby&&<div className="nb-overlay" role="dialog" aria-modal="true" aria-labelledby="nearby-title">
   <div className={nearby==='results'?'nb-sheet':'nb-stage'}>
     <button className="nb-close" onClick={closeNearby} aria-label="Close nearby search"><X size={20}/></button>
@@ -249,7 +260,7 @@ function App(){
       {nearbyMessage&&<p role="status" className="nb-sub">{nearbyMessage}</p>}
       {(nearby==='manual'||nearby==='empty'||nearby==='error')&&<form className="nb-location-form" onSubmit={searchNearbyByText}>
         <label htmlFor="nearby-location">Search by area or address</label>
-        <input id="nearby-location" value={nearbyLocation} onChange={e=>setNearbyLocation(e.target.value)} placeholder="e.g. Adyar, Chennai" autoComplete="street-address"/>
+        <input id="nearby-location" value={nearbyLocation} onChange={e=>setNearbyLocation(e.target.value)} placeholder="e.g. Kengeri, Bengaluru" autoComplete="street-address"/>
         <button className="btn btn-primary" type="submit">Search location <Search size={15}/></button>
         <button className="outline-btn" type="button" onClick={startNearby}>Use my current location <MapPin size={15}/></button>
       </form>}
