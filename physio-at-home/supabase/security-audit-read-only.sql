@@ -40,7 +40,7 @@ select
 from information_schema.role_table_grants
 where table_schema = 'public'
   and table_name in ('admins', 'booking_requests', 'physiotherapists', 'therapist_applications')
-  and grantee in ('anon', 'authenticated', 'PUBLIC', 'service_role')
+  and lower(grantee) in ('anon', 'authenticated', 'public', 'service_role')
 order by table_name, grantee, privilege_type;
 
 -- 4) List column-level grants, which may allow access even if table-level grants are absent.
@@ -54,7 +54,7 @@ select
 from information_schema.column_privileges
 where table_schema = 'public'
   and table_name in ('admins', 'booking_requests', 'physiotherapists', 'therapist_applications')
-  and grantee in ('anon', 'authenticated', 'PUBLIC', 'service_role')
+  and lower(grantee) in ('anon', 'authenticated', 'public', 'service_role')
 order by table_name, grantee, column_name, privilege_type;
 
 -- 5) List columns and types to verify the deployed schema before writing migrations.
