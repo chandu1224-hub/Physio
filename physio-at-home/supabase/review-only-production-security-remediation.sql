@@ -85,12 +85,14 @@ grant insert on table public.booking_requests to anon;
 grant insert on table public.therapist_applications to anon;
 
 -- Public listing: select only the fields currently used by the public card/search UI.
--- Deliberately excludes full_bio, contact_info, and internal/admin-only data.
+-- Deliberately excludes full_bio, contact_info, internal/admin-only data, and exact coordinates.
+-- Exact service_lat/service_lng remain server-side for the SECURITY DEFINER nearby RPC; do not
+-- expose clinicians' precise saved locations to anonymous browser clients.
 grant select (
   id, slug, name, initials, title, degree, experience_years, specialties, conditions,
   services, service_areas, languages, bio, price, availability, rating, reviews, emoji,
   color, photo_path, gallery_paths, display_order, featured, status, created_at,
-  published_at, service_location, service_lat, service_lng, service_radius_km
+  published_at, service_location, service_radius_km
 ) on table public.physiotherapists to anon;
 
 -- 5. Authenticated users need table privileges for the admin UI; RLS must restrict physiotherapist
