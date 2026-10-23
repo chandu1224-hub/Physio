@@ -135,7 +135,23 @@ function App(){
       if (id !== runId.current) return;
       if (error) throw error;
       const rows = Array.isArray(data) ? data : [];
-      const profilesById = new Map(doctors.map((doctor) => [String(doctor.id), doctor]));
+      if (!rows.length) {
+        setNearbyDoctors([]);
+        setNearby('empty');
+        setNearbyMessage('Sorry, no service is available within the providers’ configured service radius of this location. Try another location.');
+        return;
+      }
+      // Fetch the public profile fields directly so the result does not depend on
+      // whether the homepage profile hook has finished loading yet.
+      const ids = rows.map((row) => String(row.physio_id)).filter(Boolean);
+      const { data: profiles, error: profileError } = await supabase
+        .from('physiotherapists')
+        .select('id,name,initials,title,degree,experience_years,specialties,conditions,services,service_areas,languages,bio,price,availability,rating,reviews,emoji,color,photo_path,gallery_paths,display_order,featured,status,service_location,service_radius_km')
+        .in('id', ids)
+        .eq('status', 'published');
+      if (id !== runId.current) return;
+      if (profileError) throw profileError;
+      const profilesById = new Map((profiles || []).map((profile, index) => [String(profile.id), normalizeDoctor(profile, index)]));
       const normalized = rows.map((row) => {
         const profile = profilesById.get(String(row.physio_id));
         if (!profile) return null;
