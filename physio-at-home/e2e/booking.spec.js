@@ -133,7 +133,7 @@ test('therapist application validates required fields and can save with consent'
   await page.getByPlaceholder('Phone number *').fill('+91 98765 43210');
   await page.getByPlaceholder('Qualification (e.g. BPT, MPT) *').fill('BPT');
   await page.getByPlaceholder('City / Clinic name *').fill('Bengaluru');
-  await page.getByLabel(/I agree that Physio at Home may store your details/i).check();
+  await page.getByLabel(/I agree that Physio at Home may store and review my application details/i).check();
   await page.getByRole('button', { name: /Save application & continue to WhatsApp/i }).click();
 
   await expect(page.getByRole('status').filter({ hasText: /Application saved/i })).toBeVisible();
