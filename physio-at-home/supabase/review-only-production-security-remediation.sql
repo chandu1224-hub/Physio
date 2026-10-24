@@ -30,7 +30,10 @@ drop policy if exists "public reads published" on public.physiotherapists;
 drop policy if exists "admin write physiotherapists" on public.physiotherapists;
 drop policy if exists "admins manage all" on public.physiotherapists;
 
--- Remove duplicate admin self-read policy. Retain the canonical equivalent.
+-- The admins table must never be self-managed by browser users. Remove broad legacy
+-- management policies and duplicate self-read policies; later recreate only self-read.
+drop policy if exists "admins manage all" on public.admins;
+drop policy if exists "admin manages all" on public.admins;
 drop policy if exists "admin reads own row" on public.admins;
 
 -- Recreate one explicit anonymous public listing policy and one admin-only management policy.
