@@ -26,6 +26,7 @@ function JoinTherapist({ onBack }) {
     experience: '', specialties: '', city: '', regNo: '', about: ''
   });
   const [error, setError] = React.useState('');
+  const [submitting, setSubmitting] = React.useState(false);
 
   const update = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -35,6 +36,20 @@ function JoinTherapist({ onBack }) {
       setError('Please fill in name, phone, qualification and city.');
       return;
     }
+    if (form.name.trim().length > 100 || form.phone.trim().length > 20 || form.email.trim().length > 254 || form.qualification.trim().length > 120 || form.city.trim().length > 120 || form.specialties.trim().length > 300 || form.regNo.trim().length > 100 || form.about.trim().length > 2000) {
+      setError('Please shorten one or more fields to fit the allowed limits.');
+      return;
+    }
+    if (!/^[0-9+() -]{8,20}$/.test(form.phone.trim())) {
+      setError('Enter a valid phone number using 8–20 digits or phone symbols.');
+      return;
+    }
+    const experience = form.experience === '' ? null : Number(form.experience);
+    if (experience !== null && (!Number.isFinite(experience) || experience < 0 || experience > 80)) {
+      setError('Experience must be a number between 0 and 80 years.');
+      return;
+    }
+    if (submitting) return;
     if (!e.currentTarget.elements.namedItem('applicationConsent')?.checked) {
       setError('Please consent to storing your details so we can review your application.');
       return;
@@ -44,6 +59,7 @@ function JoinTherapist({ onBack }) {
       return;
     }
     setError('');
+    setSubmitting(true);
     const message =
 `*New Physiotherapist Application*
 
@@ -61,7 +77,7 @@ function JoinTherapist({ onBack }) {
       const { error: insertError } = await supabase.from('therapist_applications').insert({
         name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() || null,
         qualification: form.qualification.trim(),
-        experience_years: form.experience === '' ? null : Number(form.experience),
+        experience_years: experience,
         specialties: form.specialties.trim() || null, city: form.city.trim(),
         reg_no: form.regNo.trim() || null, about: form.about.trim() || null,
         consent: true, status: 'new'
@@ -73,6 +89,8 @@ function JoinTherapist({ onBack }) {
       if (waWindow) waWindow.close();
       setError('We could not save your application. Please try again later.');
       console.error('Therapist application submission failed:', error?.message);
+    } finally {
+      setSubmitting(false);
     }
   };
   const field = { width: '100%', padding: 10, marginBottom: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: 16, boxSizing: 'border-box' };
@@ -84,21 +102,21 @@ function JoinTherapist({ onBack }) {
       <p>Fill in your details and we'll get back to you.</p>
 
       <form onSubmit={submit}>
-        <input style={field} name="name" placeholder="Full name *" value={form.name} onChange={update} />
-        <input style={field} name="phone" type="tel" placeholder="Phone number *" value={form.phone} onChange={update} />
-        <input style={field} name="email" type="email" placeholder="Email" value={form.email} onChange={update} />
-        <input style={field} name="qualification" placeholder="Qualification (e.g. BPT, MPT) *" value={form.qualification} onChange={update} />
-        <input style={field} name="experience" type="number" min="0" placeholder="Years of experience" value={form.experience} onChange={update} />
-        <input style={field} name="specialties" placeholder="Specialties (back pain, sports, senior care...)" value={form.specialties} onChange={update} />
-        <input style={field} name="city" placeholder="City / Clinic name *" value={form.city} onChange={update} />
-        <input style={field} name="regNo" placeholder="Registration / license number" value={form.regNo} onChange={update} />
-        <textarea style={{ ...field, minHeight: 90 }} name="about" placeholder="Tell us about yourself" value={form.about} onChange={update} />
+        <input style={field} name="name" placeholder="Full name *" value={form.name} onChange={update} required minLength={2} maxLength={100} autoComplete="name" />
+        <input style={field} name="phone" type="tel" placeholder="Phone number *" value={form.phone} onChange={update} required minLength={8} maxLength={20} pattern="[0-9+() -]{8,20}" autoComplete="tel" />
+        <input style={field} name="email" type="email" placeholder="Email" value={form.email} onChange={update} maxLength={254} autoComplete="email" />
+        <input style={field} name="qualification" placeholder="Qualification (e.g. BPT, MPT) *" value={form.qualification} onChange={update} required maxLength={120} />
+        <input style={field} name="experience" type="number" min="0" max="80" step="1" placeholder="Years of experience" value={form.experience} onChange={update} />
+        <input style={field} name="specialties" placeholder="Specialties (back pain, sports, senior care...)" value={form.specialties} onChange={update} maxLength={300} />
+        <input style={field} name="city" placeholder="City / Clinic name *" value={form.city} onChange={update} required maxLength={120} />
+        <input style={field} name="regNo" placeholder="Registration / license number" value={form.regNo} onChange={update} maxLength={100} />
+        <textarea style={{ ...field, minHeight: 90 }} name="about" placeholder="Tell us about yourself" value={form.about} onChange={update} maxLength={2000} />
 
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, margin: '8px 0 14px', fontSize: 14 }}><input type="checkbox" name="applicationConsent" required style={{ marginTop: 4 }} /> I agree that Physio at Home may store and review my application details to contact me about opportunities.</label>
         {error && <p style={{ color: error.startsWith('Application saved') ? 'green' : 'crimson' }} role="status">{error}</p>}
 
-        <button type="submit" style={{ width: '100%', padding: 12, borderRadius: 8, background: '#25D366', color: '#fff', border: 'none', fontSize: 16, cursor: 'pointer' }}>
-          Save application & continue to WhatsApp
+        <button type="submit" disabled={submitting} style={{ width: '100%', padding: 12, borderRadius: 8, background: '#25D366', color: '#fff', border: 'none', fontSize: 16, cursor: submitting ? 'wait' : 'pointer', opacity: submitting ? 0.7 : 1 }}>
+          {submitting ? 'Saving application…' : 'Save application & continue to WhatsApp'}
         </button>
       </form>
     </div>
