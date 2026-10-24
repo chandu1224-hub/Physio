@@ -443,6 +443,7 @@ function Manager({ session }) {
 export default function AdminPanel() {
   const [session, setSession] = useState(null);
   const [isAdmin, setIsAdmin] = useState(null); // null = checking
+  const [accessError, setAccessError] = useState("");
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -472,15 +473,26 @@ export default function AdminPanel() {
   }, []);
 
   useEffect(() => {
+    setAccessError("");
     if (!session) { setIsAdmin(null); return; }
-    if (!supabase) { setIsAdmin(false); return; }
+    if (!supabase) { setIsAdmin(false); setAccessError("Supabase is not configured."); return; }
     let active = true;
     supabase.from("admins").select("user_id").eq("user_id", session.user.id).maybeSingle()
       .then(({ data, error }) => {
-        if (active) setIsAdmin(!error && !!data);
+        if (!active) return;
+        if (error) {
+          // Fail closed, but distinguish a failed access check from a confirmed non-admin.
+          setIsAdmin(false);
+          setAccessError("We could not verify your admin permissions. Check your connection and try again.");
+          return;
+        }
+        setIsAdmin(!!data);
       })
       .catch(() => {
-        if (active) setIsAdmin(false);
+        if (active) {
+          setIsAdmin(false);
+          setAccessError("We could not verify your admin permissions. Check your connection and try again.");
+        }
       });
     return () => { active = false; };
   }, [session]);
@@ -493,8 +505,9 @@ export default function AdminPanel() {
     return (
       <div className="ad-center">
         <div className="ad-login">
-          <h1>No admin access</h1>
-          <p className="ad-muted">{session.user.email} is not in the admins table.</p>
+          <h1>{accessError ? "Could not verify admin access" : "No admin access"}</h1>
+          <p className="ad-muted">{accessError || `${session.user.email} is not in the admins table.`}</p>
+          {accessError && <button className="ad-btn" onClick={() => window.location.reload()}>Try again</button>}
           <button className="ad-btn" onClick={() => supabase.auth.signOut()}>Sign out</button>
         </div>
       </div>
