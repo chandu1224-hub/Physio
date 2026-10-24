@@ -26,7 +26,10 @@ create policy "admins manage physiotherapists"
     exists (select 1 from public.admins a where a.user_id = (select auth.uid()))
   );
 
--- Optimize auth.uid() evaluation and keep a single admin self-read policy.
+-- The admins table must never be self-managed by browser users. Remove any broad
+-- legacy management policy as well as duplicate self-read policies, then allow self-read only.
+drop policy if exists "admins manage all" on public.admins;
+drop policy if exists "admin manages all" on public.admins;
 drop policy if exists "admin reads own row" on public.admins;
 drop policy if exists "admins read own row" on public.admins;
 create policy "admins read own row" on public.admins for select to authenticated using (user_id = (select auth.uid()));
