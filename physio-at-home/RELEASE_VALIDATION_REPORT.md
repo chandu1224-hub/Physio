@@ -2,7 +2,7 @@
 
 **Checked:** 2026-10-24  
 **Repository branch:** `work/production-readiness`  
-**Validated commit:** `3dd6eaf236c2fed7a0f95ed12bc8a21c4d116d82`  
+**Latest code commit:** `5dd214f6174c2eed30f035eaa846abad011fae62`  
 **Application:** `physio-at-home/`  
 **Production database project:** `physio-at-home` (`libbqaznznsfxxnclsmp`)  
 **Release status:** **NOT READY — do not merge or deploy**
@@ -13,7 +13,7 @@ This report separates checks actually run from checks that remain unverified. No
 
 | Area | Result | Evidence / limitation |
 |---|---|---|
-| GitHub Actions build | PASS | Latest head completed both CI workflows successfully: [Node 20 run 40076672295](https://github.com/chandu1224-hub/Physio/actions/runs/40076672295) and [Node 22 run 40076672364](https://github.com/chandu1224-hub/Physio/actions/runs/40076672364). Both ran dependency installation and `npm run build`; neither is a browser E2E test. |
+| GitHub Actions production build | PASS | Latest branch head `5dd214f6174c2eed30f035eaa846abad011fae62`: [CI run 40120002100](https://github.com/chandu1224-hub/Physio/actions/runs/40120002100) completed successfully with locked dependency install and production build. |
 | RLS enabled | PASS (metadata check) | RLS is enabled on `admins`, `booking_requests`, `physiotherapists`, and `therapist_applications`. RLS enabled alone does not prove the policies are correct. |
 | Effective table grants | PASS (metadata check, limited) | Anonymous has INSERT only on bookings and therapist applications, with no table-level SELECT/UPDATE/DELETE/TRUNCATE. Authenticated has CRUD table grants on the three application tables, but row-level policies restrict those operations to admins. |
 | Public physiotherapist column grants | PASS (metadata check) | `anon` can SELECT the fields used by the public card query; it cannot SELECT `slug`, timestamps, `contact_info`, `full_bio`, or exact `service_lat/service_lng`. Column-level grants were inspected directly. |
@@ -24,7 +24,7 @@ This report separates checks actually run from checks that remain unverified. No
 | Nearby RPC — invalid longitude (999) | PASS | Returned zero rows. |
 | Supabase Security Advisor | WARNINGS REMAIN | See Security findings below. |
 | Supabase performance advisor | INFO | One unused index warning: `booking_requests_created_idx`. Do not drop it solely from this finding; it may be new or workload-dependent. |
-| Live branch preview / browser flows | NOT RUN | No verified deploy-preview URL or browser automation session is available through the current connected tools. The existing site URL has not been proven to serve this branch. |
+| Browser E2E (mocked backend) | PASS, limited | [E2E run 40120002116](https://github.com/chandu1224-hub/Physio/actions/runs/40120002116) passed on commit `5dd214f6174c2eed30f035eaa846abad011fae62`. Coverage includes public provider card rendering, booking success/failure/consent, and therapist application success/failure/consent. Requests and WhatsApp handoff are mocked; this does not validate live Supabase or a deployed preview. |\n| Live branch preview / real-role browser flows | NOT RUN | No verified deploy-preview URL or isolated staging database is available through the current connected tools. The existing site URL has not been proven to serve this branch. |
 
 ## Live database access review
 
@@ -50,7 +50,7 @@ Observed grant details:
 
 ## Required tests before release
 
-- [ ] Run browser-level end-to-end tests against a verified preview: public profile list/search, booking validation and INSERT, failure state, therapist application consent/validation/INSERT, and WhatsApp handoff.
+- [x] Run browser-level end-to-end tests against a mocked backend for public provider-card rendering, booking consent/success/failure, and therapist-application consent/success/failure.\n- [ ] Run browser-level end-to-end tests against a verified preview, including real configuration, search behavior, and WhatsApp handoff.
 - [ ] Test non-admin authenticated user denial for all admin CRUD actions, including direct Data API calls.
 - [ ] Test the real admin account: sign-in, list records, create/edit/delete provider, booking review, application review, sign-out/session expiry.
 - [ ] Test anonymous public SELECT cannot expose private fields or unpublished rows, and anonymous clients cannot SELECT/UPDATE/DELETE bookings or applications.
