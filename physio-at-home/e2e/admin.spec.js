@@ -65,3 +65,23 @@ test('admin route distinguishes membership lookup failure from confirmed non-adm
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'No admin access' })).toHaveCount(0);
 });
+
+test('admin route opens the manager for a user with an admins membership row', async ({ page }) => {
+  await page.route(`${project}/rest/v1/admins**`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([{ user_id: user.id }]),
+    });
+  });
+  await page.route(`${project}/rest/v1/physiotherapists**`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+  });
+
+  await signInAsTestUser(page);
+  await expect(page.getByRole('heading', { name: 'Admin panel' })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText(user.email)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add physiotherapist' })).toBeVisible();
+  await expect(page.getByText('No records in physiotherapists yet.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No admin access' })).toHaveCount(0);
+});
