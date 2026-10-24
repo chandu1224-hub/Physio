@@ -2,7 +2,7 @@
 
 **Checked:** 2026-10-25  
 **Repository branch:** `work/production-readiness`  
-**Latest code commit:** `c928b60f6274f8215085bf8ca24aa8faec3e3378`  
+**Latest reviewed test commit:** `9739f5479761790f8bfed6029cef4b12682864a7`  
 **Application:** `physio-at-home/`  
 **Production database project:** `physio-at-home` (`libbqaznznsfxxnclsmp`)  
 **Release status:** **NOT READY — do not merge or deploy**
@@ -13,7 +13,7 @@ This report separates checks actually run from checks that remain unverified. No
 
 | Area | Result | Evidence / limitation |
 |---|---|---|
-| GitHub Actions production build | PASS | Latest application code commit `c928b60f6274f8215085bf8ca24aa8faec3e3378`: [CI run 40124524158](https://github.com/chandu1224-hub/Physio/actions/runs/40124524158) completed successfully with locked dependency install and production build. |
+| GitHub Actions production build | PASS | [CI run 40143077907](https://github.com/chandu1224-hub/Physio/actions/runs/40143077907) completed successfully for reviewed test commit `9739f5479761790f8bfed6029cef4b12682864a7`, including locked dependency install and production build. |
 | RLS enabled | PASS (metadata check) | RLS is enabled on `admins`, `booking_requests`, `physiotherapists`, and `therapist_applications`. RLS enabled alone does not prove the policies are correct. |
 | Effective table grants | PASS (metadata check, limited) | Anonymous has INSERT only on bookings and therapist applications, with no table-level SELECT/UPDATE/DELETE/TRUNCATE. Authenticated has CRUD table grants on the three application tables, but row-level policies restrict those operations to admins. |
 | Public physiotherapist column grants | PASS (metadata check) | `anon` can SELECT the fields used by the public card query; it cannot SELECT `slug`, timestamps, `contact_info`, `full_bio`, or exact `service_lat/service_lng`. Column-level grants were inspected directly. |
@@ -24,7 +24,7 @@ This report separates checks actually run from checks that remain unverified. No
 | Nearby RPC — invalid longitude (999) | PASS | Returned zero rows. |
 | Supabase Security Advisor | WARNINGS REMAIN | See Security findings below. |
 | Supabase performance advisor | INFO | One unused index warning: `booking_requests_created_idx`. Do not drop it solely from this finding; it may be new or workload-dependent. |
-| Browser E2E (mocked backend) | PASS, limited | [E2E run 40124524163](https://github.com/chandu1224-hub/Physio/actions/runs/40124524163) passed on commit `c928b60f6274f8215085bf8ca24aa8faec3e3378`. Coverage includes public provider card rendering, booking success/failure/consent, and therapist application success/failure/consent. Requests and WhatsApp handoff are mocked; this does not validate live Supabase or a deployed preview. The latest change also improves admin membership-lookup error messaging and retry/sign-out handling; admin-route browser coverage remains outstanding. |
+| Browser E2E (mocked backend) | PASS, limited | [E2E run 40143077908](https://github.com/chandu1224-hub/Physio/actions/runs/40143077908) passed on commit `9739f5479761790f8bfed6029cef4b12682864a7`. Includes public booking/application flows plus new mocked admin-route tests for signed-in non-admin denial and admin membership-lookup failure/recovery messaging. Requests, auth, database responses, and WhatsApp handoff are mocked; this does not validate live Supabase or a deployed preview. |
 | Live branch preview / real-role browser flows | NOT RUN | No verified deploy-preview URL or isolated staging database is available through the current connected tools. The existing site URL has not been proven to serve this branch. |
 
 ## Live database access review
@@ -52,7 +52,7 @@ Observed grant details:
 ## Required tests before release
 
 - [x] Run browser-level end-to-end tests against a mocked backend for public provider-card rendering, booking consent/success/failure, and therapist-application consent/success/failure.
-- [ ] Add/run mocked admin-route browser tests for confirmed non-admin denial and admin-membership lookup errors.
+- [x] Add/run mocked admin-route browser tests for confirmed non-admin denial and admin-membership lookup errors. CI run [40143077907](https://github.com/chandu1224-hub/Physio/actions/runs/40143077907) and browser E2E run [40143077908](https://github.com/chandu1224-hub/Physio/actions/runs/40143077908) both passed on `9739f5479761790f8bfed6029cef4b12682864a7`.
 - [ ] Run browser-level end-to-end tests against a verified preview, including real configuration, search behavior, and WhatsApp handoff.
 - [ ] Test non-admin authenticated user denial for all admin CRUD actions, including direct Data API calls.
 - [ ] Test the real admin account: sign-in, list records, create/edit/delete provider, booking review, application review, sign-out/session expiry.
