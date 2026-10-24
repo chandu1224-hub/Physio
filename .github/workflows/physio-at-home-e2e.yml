@@ -1,9 +1,6 @@
 name: Physio at Home browser E2E
 
 on:
-  push:
-    branches:
-      - work/production-readiness
   pull_request:
     paths:
       - "physio-at-home/**"
@@ -13,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: physio-at-home-e2e-${{ github.ref }}
+  group: physio-at-home-e2e-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
