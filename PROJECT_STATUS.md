@@ -134,3 +134,40 @@
 - Added save-time validation for numeric admin fields: values must be finite numbers; experience, price, review count, and display order cannot be negative; ratings must be between 0 and 5.
 - This is client-side input validation only. Database constraints remain the authoritative guard and should be verified against the actual staging schema.
 - Commit: `ace9b1bbdd9133c40adadf9d6b14d389d6e518f3`. CI must pass for this exact commit before considering the source change build-verified.
+
+
+## Test checkpoint — 2026-10-24 (user authorized test completion)
+
+### Automated build checks
+- Confirmed the latest branch head at the time of this check is `1939ef4d4c1c1315f95a957351058ed283055032`.
+- Both GitHub Actions workflows completed successfully on that exact SHA: [Physio at Home CI run 40061148010](https://github.com/chandu1224-hub/Physio/actions/runs/40061148010) and [Physio CI run 40061147999](https://github.com/chandu1224-hub/Physio/actions/runs/40061147999).
+- Inspected the job steps: both successfully installed dependencies and ran `npm run build`. This verifies compilation/build only. There are no package scripts for unit tests, linting, or browser E2E at present.
+
+### Read-only live Supabase checks
+- Project `physio-at-home` (`libbqaznznsfxxnclsmp`) reports `ACTIVE_HEALTHY`.
+- Confirmed RLS is enabled on `admins`, `booking_requests`, `physiotherapists`, and `therapist_applications`.
+- Confirmed policy inventory currently contains:
+  - public provider SELECT policy for role `anon` with `status = 'published'`;
+  - booking INSERT and therapist application INSERT policies for `anon` requiring `status = 'new'` and `consent = true`;
+  - admin CRUD policies for authenticated users requiring a matching row in `public.admins`;
+  - admins SELECT policy scoped to the current `auth.uid()`.
+- Confirmed the deployed `public.physios_near(double precision,double precision)` is `SECURITY DEFINER`, sets `search_path = pg_catalog`, and returns only `physio_id` and `distance_km`; EXECUTE is granted to both `anon` and `authenticated`.
+- Executed read-only RPC cases against the live project: NULL coordinates returned 0 rows; latitude 999 returned 0; longitude 999 returned 0; Bengaluru test point (12.9087, 77.4872) returned one provider at approximately 0.623 km; distant Delhi test point returned 0. These are smoke tests, not a complete radius-boundary/property test. The Bengaluru coordinate is a test input and does not verify the provider's real service address.
+- The SQL checks were SELECT-only. No rows, policies, grants, functions, or schema were modified.
+
+### Current Supabase advisor findings (observed 2026-10-24)
+- SECURITY warning: `public.physios_near` can be executed by `anon` and `authenticated` as a SECURITY DEFINER function. This exposure may be intentional for nearby search, but needs abuse/rate-limit review and a documented decision. See [Supabase linter 0028](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable) and [linter 0029](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable).
+- SECURITY warning: leaked-password protection is disabled. Supabase previously indicated this requires a Pro plan or higher; no setting was changed.
+- PERFORMANCE info: `booking_requests_created_idx` is reported unused. Do not drop it solely on this observation; low traffic or recent creation may explain the signal.
+- Table grants still include broad authenticated INSERT/SELECT/UPDATE/DELETE privileges on the three application tables and SELECT on `admins`. RLS is the row-level gate, but grants are still broader than ideal. Tighten privileges only after testing all admin CRUD and public write paths, ideally in a controlled migration/maintenance window.
+
+### Not yet testable / still release-blocking
+- Browser-level E2E (booking form success/failure, therapist application success/failure, non-admin denial, admin CRUD) has **not** been executed. The available GitHub integration exposes source and Actions results but no interactive browser runtime, and the public Netlify URL could not be fetched from this environment. Do not describe these flows as E2E-tested.
+- No real booking/application records were created as tests, to avoid inserting synthetic personal data into the live database.
+- Live browser runtime configuration, actual Netlify deployment SHA, CSP console errors, mobile layout, accessibility, and external geocoder behavior are unverified.
+- Provider identity, qualifications, service coordinates, prices, ratings, and availability are not independently verified. Do not remove demo labels or advertise illustrative profiles as real clinicians.
+- Nearby RPC tests did not verify every provider radius boundary or the actual address behind the returned provider.
+- Production Security Advisor warnings remain. No migration, merge, or deployment was performed.
+
+### Release decision
+**Not approved for production release yet.** Build checks pass and the read-only RPC smoke tests pass for the listed inputs, but browser E2E, provider verification, deployment preview validation, and security-warning disposition remain open. Next test step is to configure a Netlify Deploy Preview (or staging deployment) and run browser E2E against a dedicated staging Supabase project with synthetic test records, then run anonymous/non-admin/admin authorization tests without touching production data.
