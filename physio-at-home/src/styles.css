@@ -302,3 +302,16 @@ textarea {
   .nb-radar{width:230px;height:230px}
   .nb-sheet{padding:18px;border-radius:18px}
 }
+
+/* Accessible manual location entry for the real nearby search */
+.nb-location-form{display:flex;flex-direction:column;gap:10px;margin:20px auto 8px;width:min(420px,100%);text-align:left}
+.nb-location-form label{font-size:13px;font-weight:650;color:#eaf5ef}
+.nb-location-form input{width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.24);border-radius:12px;background:rgba(255,255,255,.08);color:#fff;padding:13px 14px;font:inherit;outline-offset:3px}
+.nb-location-form input::placeholder{color:rgba(234,245,239,.62)}
+.nb-location-form button{justify-content:center;display:flex;align-items:center;gap:8px}
+.nb-sheet .nb-location-form{max-width:520px}
+.nb-sheet .nb-close{top:12px;right:12px}
+.nb-sheet .nb-sheet-head{padding-right:40px}
+.nb-sheet .nb-sub{max-width:420px;margin:12px auto;color:#eaf5ef}
+.nb-stage .nb-sub{max-width:400px;margin:12px auto;color:#eaf5ef}
+@media(max-width:520px){.nb-sheet{width:94vw;box-sizing:border-box}.nb-location-form{width:100%}}

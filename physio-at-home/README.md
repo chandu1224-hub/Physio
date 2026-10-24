@@ -1,42 +1,55 @@
-# Physio at Home — VS Code starter project
+# Physio at Home
 
-A responsive React + Vite frontend inspired by the general physiotherapy discovery and booking flow at physiobuddies.in/search, using an original dark forest-green and mint visual theme based on the supplied screenshot.
+React + Vite frontend for discovering home physiotherapy services in Bengaluru.
 
 ## Requirements
-- Node.js 18+ (recommended)
-- VS Code
+
+- Node.js 20.19+ or 22.12+
+- npm
 
 ## Run locally
-1. Extract this folder and open `physio-at-home` in VS Code.
-2. Open **Terminal → New Terminal**.
-3. Install dependencies:
+
+1. Open this folder (`physio-at-home/`) in a terminal.
+2. Install locked dependencies:
    ```bash
-   npm install
+   npm ci
    ```
-4. Start the local development server:
+3. Create a local `.env.local` file with the public client configuration:
+   ```dotenv
+   VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+   VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY
+   VITE_SITE_URL=http://localhost:5173
+   ```
+   Replace the placeholders with the correct values for your environment. Never put a Supabase service-role key in a browser environment variable or commit real secrets.
+4. Start the development server:
    ```bash
    npm run dev
    ```
-5. Open the local URL shown in the terminal (usually `http://localhost:5173`).
+5. Create a production bundle with `npm run build`; preview it with `npm run preview`.
 
-## What's included
-- Opening logo splash screen
-- Responsive home page, navigation, condition cards, steps, FAQs and footer
-- Search form with condition, area and care-type options
-- Animated nearby search with five cartoon clinician characters orbiting a location pin
-- Five sample physiotherapist profiles, profile details and demo prices
-- Booking request form that composes a message and opens WhatsApp to **+91 77958 55640**
-- Floating WhatsApp contact link
-- Mobile menu, search results, filters and toast feedback
+## Current behavior
 
-## Important before launch
-- The five clinician profiles, ratings, review counts, fees, experience, availability and distances are **illustrative demo data**, not real or verified healthcare professionals. Replace them with approved real profiles and verify credentials before publishing.
-- This is a frontend prototype. Search uses local sample data; no real GPS/geospatial matching, authentication, database, payment gateway, live clinician availability, booking persistence or live tracking is connected.
-- WhatsApp links open a prefilled message to the provided number. A user must press Send in WhatsApp, and your team must confirm the appointment.
-- The 30-minute arrival wording is a design concept, not a guaranteed service-level promise. Change it to reflect actual operations.
-- Do not use testimonials or medical claims as real without appropriate evidence and consent.
+- Public physiotherapist listings are loaded from Supabase using an explicit public-field allowlist and `status = 'published'`.
+- The nearby-search UI uses browser geolocation or a manually entered Bengaluru-area location, geocodes typed locations through Photon, and calls the `physios_near` Supabase RPC. This requires the reviewed RPC to exist in the target database and provider service coordinates to be accurate.
+- Admin profile management includes service location, latitude/longitude, and service-radius fields. Admin access must be enforced by Supabase authentication and RLS; hiding the admin UI is not a security boundary.
+- Booking requests and therapist applications are submitted to Supabase where configured. The booking flow may then open WhatsApp for follow-up; opening WhatsApp is not confirmation of an appointment.
+- The website uses the WhatsApp contact number +91 77958 55640.
 
-## Main files
-- `src/main.jsx` — components, sample data, search, booking and WhatsApp interactions
-- `src/styles.css` — complete visual theme and responsive styles
-- `index.html` — page metadata and font loading
+## Required production configuration
+
+Configure these variables in Netlify for the production deploy context:
+
+- `VITE_SUPABASE_URL`: URL of the existing intended Supabase project.
+- `VITE_SUPABASE_ANON_KEY`: public anon/publishable key for that project.
+- `VITE_SITE_URL`: canonical public website origin, including `https://` and no trailing slash (used for canonical and social metadata).
+
+Do not use a service-role key in frontend code. The Supabase URL/key are public browser configuration; database grants and RLS policies must independently enforce least privilege.
+
+## Release blockers / safety notes
+
+- Do not merge or deploy until the Supabase policies, table/column grants, and `physios_near` function have been reviewed and tested for anonymous, non-admin authenticated, and admin sessions.
+- The current production Supabase project is the only available project; there is no isolated staging database. Do not run the staging demo-location seed or unreviewed security migrations against production.
+- Existing profile data must not be presented as verified clinicians unless credentials, contact details, service areas, fees, and availability have been confirmed by the business/provider.
+- A service location and coordinates must be a provider-approved service base/coverage point, not an inferred or private home address. Fictional coordinates are for isolated test environments only.
+- CI verifies dependency installation and a production build. It does not verify database policies, provider identity, geolocation accuracy, WhatsApp delivery, or the live deployment.
+- The page metadata uses `VITE_SITE_URL`; set it in the deployment environment to avoid unresolved canonical/Open Graph URLs.

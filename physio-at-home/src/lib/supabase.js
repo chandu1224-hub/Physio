@@ -1,10 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 
-const url = import.meta.env.VITE_SUPABASE_URL;
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const url = import.meta.env.VITE_SUPABASE_URL?.trim();
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
 
-if (!url || !key) {
-  console.error("Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY in .env");
+export const isSupabaseConfigured = Boolean(url && key);
+
+// Callers must check isSupabaseConfigured before using this client.
+export const supabase = isSupabaseConfigured ? createClient(url, key) : null;
+
+if (!isSupabaseConfigured) {
+  console.error(
+    "Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in the deployment environment."
+  );
 }
-
-export const supabase = createClient(url, key);
