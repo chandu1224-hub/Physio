@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - work/production-readiness
   pull_request:
     paths:
       - "physio-at-home/**"
@@ -14,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: physio-at-home-ci-${{ github.ref }}
+  group: physio-at-home-ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
