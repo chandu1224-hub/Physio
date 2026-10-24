@@ -187,3 +187,23 @@ test('therapist application failure shows an error and does not report success',
   await expect(page.getByRole('status').filter({ hasText: /could not save your application/i })).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: /Application saved/i })).toHaveCount(0);
 });
+
+
+test('therapist application cannot submit without consent', async ({ page }) => {
+  let postCount = 0;
+  await page.route('https://e2e-test-project.supabase.co/rest/v1/therapist_applications**', async (route) => {
+    if (route.request().method() === 'POST') postCount += 1;
+    await route.fulfill({ status: 201, headers: { 'content-type': 'application/json' }, body: '' });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: /Join as Physiotherapist/i }).click();
+  await page.getByPlaceholder('Full name *').fill('E2E Test Therapist');
+  await page.getByPlaceholder('Phone number *').fill('+91 98765 43210');
+  await page.getByPlaceholder('Qualification (e.g. BPT, MPT) *').fill('BPT');
+  await page.getByPlaceholder('City / Clinic name *').fill('Bengaluru');
+
+  await page.getByRole('button', { name: /Save application & continue to WhatsApp/i }).click();
+  await expect(page.getByRole('status').filter({ hasText: /Application saved/i })).toHaveCount(0);
+  expect(postCount).toBe(0);
+});
