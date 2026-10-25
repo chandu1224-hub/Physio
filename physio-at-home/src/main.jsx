@@ -304,7 +304,7 @@ function App(){
  ['How do I book a physiotherapist?','Choose your condition and care type, compare physiotherapist profiles, then submit a booking request. WhatsApp opens with your details so our team can help coordinate.'],
  ['Are the doctor profiles on this site real?','We list physiotherapists to help you compare care options. You can contact our team to confirm provider details and availability before booking.'],
  ['Is my appointment confirmed after I click book?','No. Submitting sends a booking request and opens WhatsApp. Your team must confirm the appointment directly.'],
- ['Can I request online or clinic-based care?','Yes. You can request home visits, online consultations and clinic visits. Available services depend on each physiotherapist's listed service options.'],
+ ['Can I request online or clinic-based care?','Yes. You can request home visits, online consultations and clinic visits. Available services depend on the service options listed on each profile.'],
  ['How much does a session cost?','Listed fees are intended as a guide. Please confirm the final fee with the physiotherapist before your appointment.'],
  ['What if I need urgent medical help?','Physiotherapy booking is not an emergency service. If you have sudden weakness, chest pain, a serious injury or another urgent symptom, contact emergency medical services.']
  ].map((f,i)=><div className={`faq-item ${faqOpen===i?'active':''}`} key={f[0]}><button onClick={()=>setFaqOpen(faqOpen===i?-1:i)}><span>{f[0]}</span><span className="faq-plus">{faqOpen===i?'−':'+'}</span></button>{faqOpen===i&&<p>{f[1]}</p>}</div>)}</div></div></section>
