@@ -155,7 +155,7 @@ function App(){
     if (!normalizedArea) return;
     setLocationSearch(area); setStartModalOpen(false); setAreaSuggestionsOpen(false);
     const matches = doctors.filter((doctor) => [doctor.serviceLocation || '', ...(Array.isArray(doctor.serviceAreas) ? doctor.serviceAreas : [])]
-      .map((value) => String(value || '').trim().toLocaleLowerCase())
+      .map((value) => String(value || '').trim().toLocaleLowerCase()).filter(Boolean)
       .some((value) => value === normalizedArea || value.includes(normalizedArea) || normalizedArea.includes(value)));
     if (!matches.length) { setToast('No physiotherapist is currently listed for this area. Please try another area.'); setTimeout(() => setToast(''), 5000); return; }
     if (matches.length === 1) { setSelected(matches[0]); return; }
