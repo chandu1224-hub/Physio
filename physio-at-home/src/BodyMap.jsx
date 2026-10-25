@@ -1,154 +1,171 @@
-import React, { useState } from 'react';
-import { AlertTriangle, ArrowRight, ChevronDown } from 'lucide-react';
-import { BODY_AREAS, BODY_VIEWS } from './bodyAreas';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './bodymap.css';
 
-// Lightweight SVG illustration: a dimensional, contour-line anatomical figure.
-// Kept inline so it loads reliably without an external image host; pain regions remain interactive.
-function Figure({ view }) {
-  const back = view === 'back';
-  return (
-    <g className={`bm-figure ${back ? 'bm-figure-back' : 'bm-figure-front'}`} aria-hidden="true">
-      <defs>
-        <linearGradient id="bm-skin" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#344b3d" />
-          <stop offset="27%" stopColor="#8ba995" />
-          <stop offset="52%" stopColor="#d0e1d4" />
-          <stop offset="76%" stopColor="#789987" />
-          <stop offset="100%" stopColor="#2c4436" />
-        </linearGradient>
-        <linearGradient id="bm-depth" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#d4e4d8" stopOpacity=".4" />
-          <stop offset="100%" stopColor="#14261b" stopOpacity=".2" />
-        </linearGradient>
-        <clipPath id="bm-body-clip">
-          <path d="M88 47 C83 40 82 30 84 20 C86 9 93 4 100 4 C108 4 115 10 117 21 C119 31 117 41 112 47 L113 60 C120 66 130 70 141 75 C151 80 157 92 159 107 L169 145 C171 154 168 163 163 164 C158 165 155 158 153 150 L143 116 L137 103 C140 126 140 147 135 166 C132 180 129 190 132 205 L139 249 C141 262 137 275 134 288 L130 326 C129 344 132 361 136 377 L139 397 C140 403 136 407 129 407 L113 407 C108 405 108 401 110 396 L114 376 C116 358 113 343 109 327 L101 290 L96 253 L91 290 L83 327 C79 343 76 358 78 376 L82 396 C84 401 82 405 77 407 L61 407 C54 407 50 403 51 397 L54 377 C58 361 61 344 60 326 L56 288 C53 275 49 262 51 249 L58 205 C61 190 58 180 55 166 C50 147 50 126 53 103 L47 116 L37 150 C35 158 32 165 27 164 C22 163 19 154 21 145 L31 107 C33 92 39 80 49 75 C60 70 70 66 77 60 L78 47 Z" />
-        </clipPath>
-      </defs>
-      <path className="bm-silhouette" d="M88 47 C83 40 82 30 84 20 C86 9 93 4 100 4 C108 4 115 10 117 21 C119 31 117 41 112 47 L113 60 C120 66 130 70 141 75 C151 80 157 92 159 107 L169 145 C171 154 168 163 163 164 C158 165 155 158 153 150 L143 116 L137 103 C140 126 140 147 135 166 C132 180 129 190 132 205 L139 249 C141 262 137 275 134 288 L130 326 C129 344 132 361 136 377 L139 397 C140 403 136 407 129 407 L113 407 C108 405 108 401 110 396 L114 376 C116 358 113 343 109 327 L101 290 L96 253 L91 290 L83 327 C79 343 76 358 78 376 L82 396 C84 401 82 405 77 407 L61 407 C54 407 50 403 51 397 L54 377 C58 361 61 344 60 326 L56 288 C53 275 49 262 51 249 L58 205 C61 190 58 180 55 166 C50 147 50 126 53 103 L47 116 L37 150 C35 158 32 165 27 164 C22 163 19 154 21 145 L31 107 C33 92 39 80 49 75 C60 70 70 66 77 60 L78 47 Z" fill="url(#bm-skin)" stroke="#b6d0bf" strokeWidth=".8" />
-      <path d="M88 47 Q100 54 112 47 M78 60 Q100 75 122 60 M49 75 Q65 81 72 96 M151 75 Q135 81 128 96 M57 104 Q70 119 72 143 M143 104 Q130 119 128 143 M74 78 Q100 91 126 78 M73 98 Q100 111 127 98 M74 119 Q100 132 126 119 M76 141 Q100 151 124 141 M78 163 Q100 173 122 163 M79 184 Q100 191 121 184 M78 205 Q100 214 122 205 M69 226 Q83 236 96 234 M131 226 Q117 236 104 234 M63 252 Q77 264 88 259 M137 252 Q123 264 112 259 M64 278 Q77 286 87 280 M136 278 Q123 286 113 280 M66 303 Q78 311 86 305 M134 303 Q122 311 114 305 M68 329 Q78 336 84 329 M132 329 Q122 336 116 329 M70 352 Q78 359 82 351 M130 352 Q122 359 118 351 M72 374 Q78 380 80 373 M128 374 Q122 380 120 373" fill="none" stroke="#d8e8dc" strokeOpacity=".72" strokeWidth=".8" />
-      <g clipPath="url(#bm-body-clip)" className="bm-contours">
-        {Array.from({ length: 29 }, (_, i) => {
-          const y = 68 + i * 11;
-          const inset = Math.sin(i * 0.58) * 5;
-          return <path key={i} d={`M${28 + inset} ${y} C58 ${y - 10} 72 ${y + 7} 100 ${y + 1} S142 ${y - 8} ${172 - inset} ${y + 2}`} />;
-        })}
-        <path d="M100 65 C95 104 105 133 99 167 S104 222 100 258 S104 321 100 389" className="bm-spine" />
-        <path d="M81 71 C68 98 83 123 78 150 S84 187 79 210 M119 71 C132 98 117 123 122 150 S116 187 121 210" />
-        {back ? (
-          <>
-            <path d="M63 84 Q100 119 137 84 M67 96 Q100 132 133 96 M70 110 Q100 144 130 110 M73 126 Q100 156 127 126 M76 143 Q100 167 124 143 M79 160 Q100 177 121 160" />
-            <path d="M76 177 Q100 192 124 177 M76 190 Q100 205 124 190 M77 205 Q100 220 123 205 M68 214 Q100 242 132 214 M64 231 Q100 259 136 231" />
-          </>
-        ) : (
-          <>
-            <path d="M79 80 Q100 98 121 80 M73 91 Q87 108 96 109 M127 91 Q113 108 104 109 M73 105 Q85 121 96 122 M127 105 Q115 121 104 122" />
-            <path d="M78 128 Q100 143 122 128 M79 143 Q100 157 121 143 M80 158 Q100 172 120 158 M81 174 Q100 186 119 174 M82 190 Q100 200 118 190" />
-          </>
-        )}
-      </g>
-      <path className="bm-centerline" d={back ? "M100 62 L100 222" : "M100 64 L100 201"} />
-    </g>
-  );
+const MIR = 'translate(200 0) scale(-1 1)';
+const OUT = 'M92 54L90 58Q78 62 66 66Q54 68 52 84Q51 112 51 140Q50 170 51 198Q42 212 39 232Q40 246 48 247Q58 246 59 232L59 210L59 198Q62 176 66 158L69 142Q72 124 71 106Q73 124 78 140L77 150Q74 165 74 180Q70 230 73 262Q72 280 74 292Q71 320 77 350L78 366Q73 380 73 390Q80 398 92 395L94 378L93 360Q97 320 97 296Q98 275 97 262Q99 225 100 190L100 54Z';
+const HEAD = 'M100 9C90 9 84 17 84.5 28C85 36 88 43 92 47L92 54L100 54Z';
+const HEADD = ['M85 24Q92 14 100 13', 'M91 47Q96 50 100 50', 'M83.5 26Q81 30 84 36'];
+
+const S = {
+ neck:{m:['M93 52L99 60L100 74L96 70Q92 62 90 58Z','M90 58Q80 62 68 67L74 74Q86 70 96 70Z'],d:['M90 58Q94 64 96 70']},
+ shoulder:{m:['M66 66Q54 68 52 84Q51 94 54 101L68 97Q72 82 74 72Z'],d:['M62 70Q58 84 58 98','M68 72Q64 86 63 98']},
+ chest:{m:['M74 73Q86 70 100 75L100 104Q88 110 77 101Q70 90 74 73Z'],d:['M100 82Q88 80 75 84','M100 90Q88 90 74 92','M100 98Q89 100 78 99','M100 76Q90 78 82 86']},
+ abdomen:{m:['M76 106Q86 112 91 110L91 151L85 152Q78 130 76 106Z','M92.5 108h7.5v12h-7.5z','M92.5 122h7.5v12h-7.5z','M92.5 136h7.5v12h-7.5z','M92.5 150h7.5v10h-7.5z'],d:['M78 112Q84 116 89 116','M78 122Q84 126 89 126','M78 132Q83 136 88 136']},
+ upperarm:{m:['M60 101Q66 98 70 102Q71 120 68 139L61 139Q59 120 60 101Z','M52 103Q56 100 60 102Q58 120 61 139L52 139Q49 120 52 103Z'],d:['M65 106Q66 120 65 134']},
+ elbow:{m:['M51 140L69 140L67 154L50 154Z'],d:['M56 144Q60 148 64 144']},
+ forearm:{m:['M50 154L59 154Q59 176 56 198L52 198Q49 176 50 154Z','M60 154L67 154Q65 176 58 199L57 198Q61 176 60 154Z'],d:['M55 160Q56 178 54 194','M63 160Q62 176 59 192']},
+ wrist:{m:['M52 199L59 200L59 208L52 208Z'],d:['M52 203L59 204']},
+ hand:{m:['M51 209L59 210Q61 222 59 236Q57 246 48 246Q39 244 39 232Q41 218 51 209Z'],d:['M56 214Q54 226 55 238','M49 214Q46 228 46 240']},
+ hip:{m:['M78 156Q90 158 100 160L100 188Q88 180 78 174Q74 164 78 156Z'],d:['M78 158Q86 162 94 170']},
+ thigh:{m:['M76 176Q82 178 87 182Q89 220 88 252L74 252Q72 215 76 176Z','M89 184Q94 188 96 192Q96 222 95 252L89 252Q90 220 89 184Z','M97 192L100 190L100 252L96 252Q98 222 97 192Z'],d:['M80 190Q84 220 82 248','M92 200Q93 224 92 248']},
+ knee:{m:['M74 253L97 253L96 279L74 279Z'],d:['M80 264Q86 256 92 264Q86 274 80 264Z']},
+ calf:{m:['M74 280L86 280Q86 320 84 346L77 346Q73 320 74 280Z','M87 280L96 280Q95 320 90 346L85 346Q88 320 87 280Z'],d:['M80 290Q80 320 80 340']},
+ ankle:{m:['M77 347L90 347L91 362L78 362Z'],d:[]},
+ foot:{m:['M76 363L93 363L94 380Q92 394 82 394Q73 394 74 382Z'],d:['M82 380L82 392','M88 380L88 391']}
+};
+const SB = {
+ neck:{m:['M93 54L100 52L100 72Q94 70 87 64Z'],d:['M100 56Q94 62 90 68']},
+ upperarm:{m:['M52 103Q58 100 66 102Q71 122 68 139L55 139Q49 120 52 103Z'],d:['M62 106Q60 122 62 136']},
+ upperback:{m:['M74 90Q84 100 94 114L90 140Q80 132 74 112Q71 100 74 90Z','M86 62L100 58L100 120Q92 114 84 102Q79 84 86 62Z'],d:['M78 78Q90 76 92 84L88 102Q80 100 78 78Z','M100 70Q92 74 86 80']},
+ lowerback:{m:['M91 122Q96 120 100 122L100 158Q93 158 90 154Z','M80 128Q86 130 90 134L89 154L82 154Q79 142 80 128Z'],d:['M95 128L95 154']},
+ hip:{m:['M78 156Q90 154 100 158L100 194Q90 200 80 192Q72 174 78 156Z'],d:['M78 162Q88 160 94 168','M100 170Q92 182 86 194']},
+ thigh:{m:['M75 196Q82 198 90 198Q90 226 88 252L74 252Q71 222 75 196Z','M91 198L100 196Q99 226 97 252L90 252Q92 226 91 198Z'],d:['M82 206Q83 230 81 248','M95 206L94 246']},
+ knee:{m:['M74 253L97 253L96 279L74 279Z'],d:['M80 262Q86 270 92 262']},
+ calf:{m:['M74 280Q82 278 86 280Q88 310 84 346L77 346Q70 312 74 280Z','M87 280Q94 278 96 280Q97 312 90 346L86 346Q89 312 87 280Z'],d:['M86 322L85 346']}
+};
+
+const A = [
+ ['neck','Neck','Neck flexors, trapezius','Stiffness or aching, often worse after long hours at a screen.',[['Neck strain','Overworked neck muscles; usually eases with movement and posture changes.'],['Pinched nerve','Pain or tingling that travels into the shoulder or arm.']],
+ ['shoulder','Shoulder','Deltoid, rotator cuff','Pain when lifting the arm, reaching or sleeping on that side.',[['Rotator cuff strain','Pain lifting the arm overhead or reaching behind.'],['Frozen shoulder','Gradual stiffness that limits movement in every direction.']]],
+ ['chest','Chest','Pectorals, rib muscles','Tightness or soreness in the front of the chest wall.',[['Muscle strain','Sore when breathing deeply or moving the arm.'],['Rib joint irritation','Sharp, localised pain when pressing on the rib joints.']],'front'],
+ ['abdomen','Abdomen','Rectus abdominis, obliques','Core and abdominal wall soreness.',[['Core strain','Pain when twisting, sitting up or coughing.'],['Postnatal core weakness','Weak core muscles after pregnancy or surgery.']],'front'],
+ ['upperarm','Upper arm','Biceps, triceps','Aching or weakness between the shoulder and elbow.',[['Biceps strain','Pain at the front of the arm when lifting.'],['Triceps tendon pain','Pain at the back of the arm when pushing.']]],
+ ['elbow','Elbow','Elbow tendons','Pain on the outer or inner side of the elbow.',[['Tennis elbow','Outer elbow pain when gripping or lifting.'],['Golfer’s elbow','Inner elbow pain when gripping or twisting.']]],
+ ['forearm','Forearm','Wrist flexors and extensors','Aching along the forearm, often after repetitive work.',[['Overuse strain','Aching after typing, tools or repeated gripping.'],['Tendon irritation','Pain that builds with repeated wrist movement.']]],
+ ['wrist','Wrist','Wrist joint, carpal tunnel','Pain, clicking or tingling at the wrist.',[['Carpal tunnel','Tingling in the thumb, index and middle fingers.'],['Wrist sprain','Pain after a fall or sudden twist.']]],
+ ['hand','Hand','Small hand muscles, tendons','Stiffness or pain in the palm and fingers.',[['Trigger finger','A finger that catches or locks when bending.'],['Hand arthritis','Morning stiffness and aching in the joints.']]],
+ ['upperback','Upper back','Trapezius, rhomboids','Tightness between the shoulder blades.',[['Postural strain','Aching from long periods sitting or hunching.'],['Muscle knot','A tender, tight spot that limits movement.']],'back'],
+ ['lowerback','Lower back','Lumbar muscles, spine','Aching or sharp pain in the lower back.',[['Lumbar strain','Pain after lifting or long sitting; eases with movement.'],['Disc irritation','Back pain that may spread down the leg.']],'back'],
+ ['hip','Hip','Hip flexors, glutes','Pain in the hip, groin or buttock.',[['Hip bursitis','Pain on the outer hip, worse lying on that side.'],['Glute strain','Deep buttock pain when climbing or running.']]],
+ ['thigh','Thigh','Quadriceps, hamstrings','Pain or tightness in the front or back of the thigh.',[['Hamstring strain','Sudden pain at the back of the thigh when sprinting.'],['Quadriceps strain','Pain at the front of the thigh when kicking or climbing.']]],
+ ['knee','Knee','Knee joint, ligaments','Pain, swelling or giving way at the knee.',[['Runner’s knee','Pain around the kneecap, worse on stairs.'],['Ligament sprain','Pain and instability after a twist or impact.']]],
+ ['calf','Calf','Gastrocnemius, soleus','Cramping or tightness in the lower leg.',[['Calf strain','Sudden tight pain when pushing off.'],['Shin splints','Aching along the shin when running.']]],
+ ['ankle','Ankle','Ankle ligaments, Achilles','Pain or swelling around the ankle.',[['Ankle sprain','Swelling and pain after rolling the ankle.'],['Achilles tendinopathy','Pain at the back of the heel when walking.']]],
+ ['foot','Foot','Plantar fascia, toes','Pain in the heel, arch or toes.',[['Plantar fasciitis','Heel pain, worst with the first steps in the morning.'],['Flat foot strain','Arch aching after long standing.']]]
+];
+const NS = 'http://www.w3.org/2000/svg';
+const svgNode = (tag, attrs = {}, children = []) => React.createElement(tag, attrs, ...children);
+
+function BodySvg({ view, selectedId, zoom = false, svgRef }) {
+  const areas = A.filter((a) => !a[5] || a[5] === view);
+  return <svg ref={svgRef} className={zoom ? 'svg-body-guide zoom-svg' : 'svg-body-guide'} viewBox="0 0 200 400" role="group" aria-label={zoom ? 'Zoomed body area' : 'Body map'}>
+    {[OUT, HEAD].flatMap((d, i) => [<path key={i+'r'} d={d} className="bg-base" />, <path key={i+'l'} d={d} className="bg-base" transform={MIR} />])}
+    {HEADD.flatMap((d, i) => [<path key={i+'r'} d={d} className="bg-fibre" />, <path key={i+'l'} d={d} className="bg-fibre" transform={MIR} />])}
+    {areas.map((a) => {
+      const shape = (view === 'back' && SB[a[0]]) || S[a[0]];
+      return <g key={a[0]} className={'bg-area'+(selectedId === a[0] ? ' on' : '')} data-area={a[0]} data-clinical-name={a[2]} aria-label={a[1]} role={zoom ? undefined : 'button'} tabIndex={zoom ? -1 : 0} onClick={zoom ? undefined : () => {}}>{['m','d'].flatMap((part) => shape[part].flatMap((d, i) => [<path key={part+i+'r'} d={d} className={part === 'm' ? 'bg-muscle' : 'bg-fibre'} />, <path key={part+i+'l'} d={d} className={part === 'm' ? 'bg-muscle' : 'bg-fibre'} transform={MIR} />]))}</g>;
+    })}
+  </svg>;
 }
 
 export default function BodyMap({ onFind }) {
   const [view, setView] = useState('front');
   const [selectedId, setSelectedId] = useState(null);
-  const selected = BODY_AREAS.find((area) => area.id === selectedId) || null;
+  const [condition, setCondition] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [zoomBox, setZoomBox] = useState('0 0 200 400');
+  const [returnFocus, setReturnFocus] = useState(null);
+  const svgRef = useRef(null);
+  const dialogRef = useRef(null);
+  const closeRef = useRef(null);
+  const selected = A.find((a) => a[0] === selectedId);
+  const visibleAreas = useMemo(() => A.filter((a) => !a[5] || a[5] === view), [view]);
 
-  const choose = (area) => {
-    setSelectedId(area.id);
-    if (!area.views.includes(view)) setView(area.views[0]);
+  const chooseView = (next) => {
+    setView(next);
+    if (selectedId) {
+      const area = A.find((a) => a[0] === selectedId);
+      if (area?.[5] && area[5] !== next) { setSelectedId(null); setCondition(null); }
+    }
   };
 
-  const onRegionKey = (event, area) => {
-    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(area); }
+  const chooseArea = (id, trigger) => {
+    const area = A.find((a) => a[0] === id);
+    if (!area) return;
+    setReturnFocus(trigger || document.activeElement);
+    setSelectedId(id);
+    setCondition(null);
+    setOpen(true);
+    const shape = (view === 'back' && SB[id]) || S[id];
+    const points = shape.m.map((d) => d.match(/-?\d+(?:\.\d+)?/g)?.map(Number) || []).flat();
+    if (points.length) {
+      const xs = points.filter((_, i) => i % 2 === 0), ys = points.filter((_, i) => i % 2 === 1);
+      const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+      const w = Math.max(maxX - minX + 44, 70), h = Math.max(maxY - minY + 44, 90);
+      setZoomBox(`${minX + (maxX-minX)/2 - w/2} ${minY + (maxY-minY)/2 - h/2} ${w} ${h}`);
+    }
   };
 
-  return (
-    <section className="section bodymap-section" id="body-guide" aria-labelledby="bodymap-title">
-      <div className="wrap">
-        <div className="section-intro">
-          <span className="section-kicker">UNDERSTAND YOUR PAIN</span>
-          <h2 id="bodymap-title">Start with the spot<br /><em>that bothers you.</em></h2>
-          <p>Choose a body area to read about common reasons it can hurt, in plain language. This is general information to help you describe your problem, not a diagnosis.</p>
+  const close = () => { setOpen(false); setCondition(null); };
+
+  useEffect(() => {
+    if (!open) { returnFocus?.focus?.(); return; }
+    const timer = window.setTimeout(() => closeRef.current?.focus(), 60);
+    const onKey = (event) => {
+      if (event.key === 'Escape') close();
+      if (event.key === 'Tab' && dialogRef.current) {
+        const nodes = [...dialogRef.current.querySelectorAll('button:not(:disabled)')];
+        if (!nodes.length) return;
+        const first = nodes[0], last = nodes[nodes.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => { window.clearTimeout(timer); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  const startSearch = () => {
+    if (!selected) return;
+    onFind?.({ area: selected[0], label: selected[1], condition: condition?.[0] || null });
+    close();
+  };
+
+  return <section className="section approved-body-guide" id="body-guide" aria-labelledby="body-guide-title">
+    <div className="wrap">
+      <h2 id="body-guide-title">Where does it hurt?</h2>
+      <p className="bg-subtitle">Tap the body or pick an area, then choose a condition to find physios who treat it.</p>
+      <div className="bg-toggle" role="group" aria-label="Body view">
+        <button type="button" aria-pressed={view === 'front'} onClick={() => chooseView('front')}>Front</button>
+        <button type="button" aria-pressed={view === 'back'} onClick={() => chooseView('back')}>Back</button>
+      </div>
+      <div className="bg-stage">
+        <div className="bg-figure-card">
+          <BodySvg view={view} selectedId={selectedId} svgRef={svgRef} />
         </div>
-
-        <div className="bm-layout">
-          <div className="bm-figure-card">
-            <div className="bm-toggle" role="group" aria-label="Body view">
-              {BODY_VIEWS.map((v) => (
-                <button type="button" key={v} className={view === v ? 'is-active' : ''} aria-pressed={view === v} onClick={() => setView(v)}>
-                  {v === 'front' ? 'Front' : 'Back'}
-                </button>
-              ))}
+        <div className="bg-area-list" role="group" aria-label="Body areas">
+          {visibleAreas.map((a) => <button key={a[0]} type="button" aria-current={selectedId === a[0] ? 'true' : undefined} onClick={(e) => chooseArea(a[0], e.currentTarget)}><span className="bg-dot" />{a[1]}</button>)}
+        </div>
+      </div>
+    </div>
+    <div className={'bg-popup'+(open ? ' open' : '')} aria-hidden={!open} onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
+      <div className="bg-card-wrap">
+        <button type="button" className="bg-close" ref={closeRef} onClick={close} aria-label="Close body area details">×</button>
+        <div className="bg-dialog" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="bg-popup-title" tabIndex={-1}>
+          <div className="bg-zoom"><BodySvg view={view} selectedId={selectedId} zoom /></div>
+          <div className="bg-info">
+            <h3 id="bg-popup-title">{selected?.[1]}</h3>
+            <p className="bg-note">Muscles and structures: {selected?.[2]}</p>
+            <p>{selected?.[3]}</p>
+            <div className="bg-condition-chips" role="group" aria-label="Conditions">
+              {selected?.[4].map((c) => <button type="button" key={c[0]} aria-pressed={condition?.[0] === c[0]} onClick={() => setCondition(c)}>{c[0]}</button>)}
             </div>
-            <svg className="bm-svg" viewBox="0 0 200 420" role="group" aria-label={`Body diagram, ${view} view`}>
-              <Figure view={view} />
-              {BODY_AREAS.filter((area) => area.views.includes(view)).map((area) => (
-                <g
-                  key={area.id}
-                  className={selectedId === area.id ? 'bm-region is-selected' : 'bm-region'}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={area.label}
-                  aria-pressed={selectedId === area.id}
-                  onClick={() => choose(area)}
-                  onKeyDown={(e) => onRegionKey(e, area)}
-                >
-                  {area.shapes.map((shape, i) => {
-                    const { t, ...attrs } = shape;
-                    return React.createElement(t, { key: i, ...attrs });
-                  })}
-                </g>
-              ))}
-            </svg>
-            <p className="bm-hint">Tap a highlighted area, or pick one from the list.</p>
-          </div>
-
-          <div className="bm-detail">
-            <div className="bm-chips" role="group" aria-label="Body areas">
-              {BODY_AREAS.map((area) => (
-                <button type="button" key={area.id} className={selectedId === area.id ? 'bm-chip is-selected' : 'bm-chip'} aria-pressed={selectedId === area.id} onClick={() => choose(area)}>
-                  {area.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="bm-panel" aria-live="polite">
-              {!selected && (
-                <div className="bm-empty">
-                  <h3>Choose an area to begin</h3>
-                  <p>You will see common causes of pain there, and when it is best to see a doctor rather than wait.</p>
-                </div>
-              )}
-              {selected && (
-                <>
-                  <h3 className="bm-panel-title">{selected.label}</h3>
-                  <p className="bm-panel-sub">Common reasons for pain here</p>
-                  <div className="bm-conditions">
-                    {selected.conditions.map((c) => (
-                      <details key={c.name} className="bm-condition">
-                        <summary><span>{c.name}</span><ChevronDown size={16} aria-hidden="true" /></summary>
-                        <p>{c.meaning}</p>
-                      </details>
-                    ))}
-                  </div>
-                  <div className="bm-alert" role="note">
-                    <AlertTriangle size={17} aria-hidden="true" />
-                    <p><strong>See a doctor promptly if you have:</strong> {selected.seekCare}</p>
-                  </div>
-                  <button type="button" className="btn btn-primary bm-cta" onClick={onFind}>
-                    Find a physio near you <ArrowRight size={16} />
-                  </button>
-                </>
-              )}
-            </div>
-            <p className="bm-disclaimer">General information only. It cannot tell you what is causing your pain. A physiotherapist or doctor needs to assess you in person.</p>
+            <p className="bg-detail" aria-live="polite">{condition?.[1] || 'Choose the condition that sounds closest.'}</p>
+            <button type="button" className="bg-cta" onClick={startSearch}>Find a physio for {selected?.[1]?.toLowerCase()} pain</button>
+            <p className="bg-note">General information only, not a diagnosis. See a physiotherapist or doctor if pain is severe, sudden or lasting.</p>
           </div>
         </div>
       </div>
-    </section>
-  );
+    </div>
+  </section>;
 }
