@@ -15,9 +15,8 @@ test('body guide starts with no area selected and shows guidance', async ({ page
 
 test('selecting an area lists common causes and a see-a-doctor note', async ({ page }) => {
   await page.goto('/');
-  // The page uses smooth scrolling, which keeps SVG groups from ever counting as "stable" for a normal click.
-  // A forced click still dispatches a real mouse event at the region's centre, so it proves the hit target.
-  await section(page).locator('svg.bm-svg').getByRole('button', { name: 'Knee' }).click({ force: true });
+  // Knee is drawn as two shapes (left and right). Click one shape; the centre of the whole group sits between them.
+  await section(page).locator('svg.bm-svg [aria-label="Knee"] circle').first().click();
   await expect(section(page).getByRole('heading', { name: 'Knee' })).toBeVisible();
   const cause = section(page).getByText('Knee osteoarthritis');
   await expect(cause).toBeVisible();
