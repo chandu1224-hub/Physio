@@ -2,12 +2,12 @@
 
 **Checked:** 2026-10-25  
 **Repository branch:** `work/production-readiness`  
-**Latest reviewed test commit:** `987d865440eb3338a2d325998bcbca35bbcd3665`  
+**Latest fully CI-verified commit at report update:** `4b6137b8d88fecedb375e20666a56162aa74fb3d` (a subsequent local-date booking fix is committed separately and awaits its own CI result)  
 **Application:** `physio-at-home/`  
 **Production database project:** `physio-at-home` (`libbqaznznsfxxnclsmp`)  
 **Release status:** **NOT READY — do not merge or deploy**
 
-This report separates checks actually run from checks that remain unverified. No booking/application rows were inserted, no policies/grants/functions were changed, and no production deployment was triggered during this validation.
+This report separates checks actually run from checks that remain unverified. No policies, grants, or functions were changed, and no production deployment was triggered. Four demo/test service locations were written to the live `physiotherapists` rows at the owner's explicit request; they are approximate Bengaluru test coordinates and must be replaced before real service launch. A temporary QA booking row was inserted via SQL, read back successfully, and deleted. That checks table write/read/schema only; it does NOT prove the website's anonymous REST insert or the authenticated admin browser view.
 
 ## Checks actually run
 
@@ -19,6 +19,9 @@ This report separates checks actually run from checks that remain unverified. No
 | Public physiotherapist column grants | PASS (metadata check) | `anon` can SELECT the fields used by the public card query; it cannot SELECT `slug`, timestamps, `contact_info`, `full_bio`, or exact `service_lat/service_lng`. Column-level grants were inspected directly. |
 | Nearby RPC — valid Bengaluru test point | PASS (limited) | `physios_near(12.9087, 77.4872)` returned one published provider at approximately 0.623 km. This is a technical test point, not confirmation that the provider approved the coordinates. |
 | Nearby RPC — distant test point | PASS (limited) | `physios_near(28.6139, 77.2090)` returned zero rows. |
+| Published provider test coordinates | PASS for test coverage only | All five published demo profiles now have Bengaluru-area coordinates and a 10 km radius. Four were populated with approximate test-only coordinates at the owner's request; they are not provider-verified service locations. Each profile was returned at distance 0 km when queried at its own saved coordinate. |
+| Booking table SQL smoke test | PASS, limited | Inserted temporary `QA Test Booking (delete)` row (`b39f3d9f-0e51-435f-a8c3-f745099bab95`), read back all booking fields, then deleted it. This bypasses the browser/anon Data API and admin session, so it is not live form-to-admin verification. |
+| Live website booking submission | BLOCKED / NOT VERIFIED | The execution environment cannot resolve the public Supabase or Netlify hostnames and no browser session against a verified deploy preview is available. The source form does call `.from('booking_requests').insert(...)`, but the actual public-site request and authenticated admin panel have not been exercised. |
 | Nearby RPC — NULL coordinates | PASS | Returned zero rows. |
 | Nearby RPC — invalid latitude (999) | PASS | Returned zero rows. |
 | Nearby RPC — invalid longitude (999) | PASS | Returned zero rows. |
@@ -45,26 +48,33 @@ Observed grant details:
 
 ## Security Advisor findings
 
-1. **Public executable SECURITY DEFINER RPC** — `public.physios_near(double precision, double precision)` is callable by both `anon` and `authenticated`. The function currently has `search_path = pg_catalog`, schema-qualifies `public.physiotherapists`, filters to published providers with coordinates, respects service radius, and returns only provider ID plus distance. Public execution is required for the current nearby-search design, so do not revoke EXECUTE without replacing the feature. Assess request-rate abuse and consider rate limiting/monitoring.
-2. **Leaked-password protection disabled** — Supabase reports it is disabled and prior plan checks indicated enabling it requires a higher plan. This remains a documented risk until enabled or formally accepted.
+1. **Public executable SECURITY DEFINER RPC** — `public.physios_near(double precision, double precision)` is callable by both `anon` and `authenticated`. The function currently has `search_path = pg_catalog`, schema-qualifies `public.physiotherapists`, filters to published providers with coordinates, respects service radius, and returns only provider ID plus distance. Public execution is required for the current nearby-search design, so do not revoke EXECUTE without replacing the feature. Owner decision (2026-10-25): keep this function unchanged for the test rollout while its functional checks pass; this accepts residual public-RPC abuse risk, not a claim that the warning is resolved.
+2. **Leaked-password protection disabled** — Supabase reports it is disabled and prior plan checks indicated enabling it requires a higher plan. Owner decision (2026-10-25): retain the current free-tier setup for now; record this as an accepted limitation for test rollout. It remains unresolved and should be reconsidered before broad public launch.
 3. **Unused index informational warning** — review query workload and index intent before deciding whether to retain or remove it.
 
 ## Required tests before release
 
 - [x] Run browser-level end-to-end tests against a mocked backend for public provider-card rendering, booking consent/success/failure, and therapist-application consent/success/failure.
 - [x] Add/run mocked admin-route browser tests for confirmed non-admin denial, admin-membership lookup errors, and successful authorized-admin access to the manager. Latest CI run [40159980057](https://github.com/chandu1224-hub/Physio/actions/runs/40159980057) and browser E2E run [40159979850](https://github.com/chandu1224-hub/Physio/actions/runs/40159979850) both passed on `987d865440eb3338a2d325998bcbca35bbcd3665`.
-- [ ] Run browser-level end-to-end tests against a verified preview, including real configuration, search behavior, and WhatsApp handoff.
+- [ ] Run browser-level end-to-end tests against a verified preview, including real configuration, anonymous REST booking INSERT, admin sign-in and booking visibility, search behavior, and WhatsApp handoff.
 - [ ] Test non-admin authenticated user denial for all admin CRUD actions, including direct Data API calls.
 - [ ] Test the real admin account: sign-in, list records, create/edit/delete provider, booking review, application review, sign-out/session expiry.
 - [ ] Test anonymous public SELECT cannot expose private fields or unpublished rows, and anonymous clients cannot SELECT/UPDATE/DELETE bookings or applications.
 - [ ] Test role-specific INSERT policy failures when consent is false or status is not `new`, without creating persistent test submissions in production.
 - [ ] Test mobile and desktop layouts, keyboard navigation, form labels/errors, console errors, failed network/API requests, and CSP/font/image loading on the branch preview.
-- [ ] Confirm service coordinates and service radius with each provider. Four published profiles previously showed no coordinates; do not invent locations.
+- [ ] Replace the four approximate demo coordinates and confirm service radius with each provider. All five currently have test coordinates, but only the original Kengeri coordinate existed before the owner's test-data instruction; none of the added locations should be treated as verified real coverage.
 - [ ] Verify each clinician's identity, registration/credentials, fees, ratings/reviews, availability, booking phone number, consent wording, privacy notice, and data-retention handling.
 - [ ] Re-run Security Advisor after any approved remediation and verify effective privileges/policies.
 - [ ] Confirm Netlify deploy-preview commit SHA equals the reviewed branch head.
 - [ ] Obtain an explicit release decision before merge/deployment.
 
+## Owner-provided business information / open legal details
+
+- Business name: **Physio at Home**.
+- No physical business address is maintained; do not invent one.
+- Business email will be supplied later.
+- Data-retention period, cancellation/refund policy, and jurisdiction/contact process still need owner decisions before publishing a final legal notice. The active `src/main.jsx` entry currently has no Privacy Policy/Terms routes; the root-level `main.jsx` legal template is not loaded by `index.html` and must not be mistaken for live legal pages.
+
 ## Safety boundary
 
-The live Supabase project is the only connected project currently available; there is no isolated staging database. This validation used read-only metadata and SELECT/RPC calls only. Do not run the tracked security migration, review-only remediation SQL, or staging demo-location seed against production until the migration is reviewed against the live schema, backed up, and separately approved. No service-role secret belongs in browser code.
+The live Supabase project is the only connected project currently available; there is no isolated staging database. The SQL smoke-test row was removed after read-back. The execution environment cannot resolve `libbqaznznsfxxnclsmp.supabase.co` or the public Netlify hostname, so a real browser-to-Data-API test cannot be honestly marked complete from this session. Do not merge/deploy until a verified preview or browser-capable run confirms the anonymous booking insert and admin visibility. No service-role secret belongs in browser code.
