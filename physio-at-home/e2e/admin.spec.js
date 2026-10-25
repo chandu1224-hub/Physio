@@ -135,6 +135,9 @@ test('admin requires a physiotherapist name before saving a new profile', async 
 
   const nameInput = page.getByLabel('name', { exact: true });
   await expect(nameInput).toBeVisible();
+  // Change the controlled React value before clearing it; filling an already-empty
+  // input can be a no-op and may not exercise the onChange validation path.
+  await nameInput.fill('Temporary profile');
   await nameInput.fill('');
   await page.getByRole('button', { name: 'Save changes' }).click();
 
