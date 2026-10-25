@@ -85,3 +85,30 @@ test('admin route opens the manager for a user with an admins membership row', a
   await expect(page.getByText('No records in physiotherapists yet.')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'No admin access' })).toHaveCount(0);
 });
+
+test('authorized admin can switch between booking and therapist application queues', async ({ page }) => {
+  await page.route(`${project}/rest/v1/admins**`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([{ user_id: user.id }]),
+    });
+  });
+  for (const table of ['physiotherapists', 'booking_requests', 'therapist_applications']) {
+    await page.route(`${project}/rest/v1/${table}**`, async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+    });
+  }
+
+  await signInAsTestUser(page);
+  await expect(page.getByRole('heading', { name: 'Admin panel' })).toBeVisible({ timeout: 10_000 });
+
+  await page.getByRole('button', { name: 'booking_requests' }).click();
+  await expect(page.getByText('No records in booking_requests yet.')).toBeVisible();
+
+  await page.getByRole('button', { name: 'therapist_applications' }).click();
+  await expect(page.getByText('No records in therapist_applications yet.')).toBeVisible();
+
+  await page.getByRole('button', { name: 'physiotherapists' }).click();
+  await expect(page.getByText('No records in physiotherapists yet.')).toBeVisible();
+});
