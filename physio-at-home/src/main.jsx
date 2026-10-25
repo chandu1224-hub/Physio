@@ -148,7 +148,10 @@ function App(){
       String(doctor.serviceLocation || '').split(',')[0],
       ...(Array.isArray(doctor.serviceAreas) ? doctor.serviceAreas : [])
     ]).map((value) => String(value || '').trim()).filter(Boolean);
-    return [...new Map(values.map((value) => [value.toLocaleLowerCase(), value])).values()].sort((a, b) => a.localeCompare(b));
+    const unique = new Map();
+    // Keep the first spelling seen so a lower-case duplicate cannot replace a properly capitalised area name.
+    values.forEach((value) => { const key = value.toLocaleLowerCase(); if (!unique.has(key)) unique.set(key, value); });
+    return [...unique.values()].sort((a, b) => a.localeCompare(b));
   }, [doctors]);
 
   const openStartModal = () => { setStartModalOpen(true); setLocationSearch(''); setAreaSuggestionsOpen(false); };
