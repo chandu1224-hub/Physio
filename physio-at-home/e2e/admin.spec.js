@@ -141,6 +141,6 @@ test('admin requires a physiotherapist name before saving a new profile', async 
   await nameInput.fill('');
   await page.getByRole('button', { name: 'Save changes' }).click();
 
-  await expect(page.getByText(/Physiotherapist name is required/i)).toBeVisible();
+  await expect(nameInput).toHaveJSProperty('validity.valid', false);
   expect(insertAttempted).toBe(false);
 });
