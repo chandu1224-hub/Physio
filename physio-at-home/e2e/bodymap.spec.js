@@ -5,9 +5,24 @@ test.beforeEach(async ({ page }) => {
     route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
 });
 
-test('homepage no longer renders the Understand Your Pain body guide', async ({ page }) => {
+test('homepage renders the interactive body-area guide', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByText('UNDERSTAND YOUR PAIN', { exact: true })).toHaveCount(0);
-  await expect(page.locator('#body-guide')).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: 'Care, without the extra steps.' })).toBeVisible();
+  const guide = page.locator('#body-guide');
+  await expect(guide).toBeVisible();
+  await expect(guide.getByText('UNDERSTAND YOUR PAIN', { exact: true })).toBeVisible();
+  await expect(guide.getByRole('heading', { name: /Start with the spot/ })).toBeVisible();
+  await expect(guide.getByRole('group', { name: 'Body view' })).toBeVisible();
+  await expect(guide.getByRole('button', { name: 'Front', exact: true })).toBeVisible();
+  await expect(guide.getByRole('button', { name: 'Back', exact: true })).toBeVisible();
+  await expect(guide.getByRole('group', { name: 'Body areas' })).toBeVisible();
+});
+
+test('body guide switches between front and back views', async ({ page }) => {
+  await page.goto('/');
+  const guide = page.locator('#body-guide');
+  await expect(guide).toBeVisible();
+  await guide.getByRole('button', { name: 'Back', exact: true }).click();
+  await expect(guide.getByRole('button', { name: 'Back', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await guide.getByRole('button', { name: 'Front', exact: true }).click();
+  await expect(guide.getByRole('button', { name: 'Front', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
