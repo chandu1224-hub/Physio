@@ -55,7 +55,7 @@ test('homepage loads published provider cards from the mocked API', async ({ pag
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /Find physiotherapy/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Dr. Test Provider' }).first()).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText(/Demo platform: profiles/i)).toBeVisible();
+  await expect(page.getByText(/Profiles help you compare care options/i)).toBeVisible();
 });
 
 test('booking saves the request before showing the success confirmation', async ({ page }) => {
