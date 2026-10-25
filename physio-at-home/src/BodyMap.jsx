@@ -35,7 +35,7 @@ const SB = {
 };
 
 const A = [
- ['neck','Neck','Neck flexors, trapezius','Stiffness or aching, often worse after long hours at a screen.',[['Neck strain','Overworked neck muscles; usually eases with movement and posture changes.'],['Pinched nerve','Pain or tingling that travels into the shoulder or arm.']],
+ ['neck','Neck','Neck flexors, trapezius','Stiffness or aching, often worse after long hours at a screen.',[['Neck strain','Overworked neck muscles; usually eases with movement and posture changes.'],['Pinched nerve','Pain or tingling that travels into the shoulder or arm.']]],
  ['shoulder','Shoulder','Deltoid, rotator cuff','Pain when lifting the arm, reaching or sleeping on that side.',[['Rotator cuff strain','Pain lifting the arm overhead or reaching behind.'],['Frozen shoulder','Gradual stiffness that limits movement in every direction.']]],
  ['chest','Chest','Pectorals, rib muscles','Tightness or soreness in the front of the chest wall.',[['Muscle strain','Sore when breathing deeply or moving the arm.'],['Rib joint irritation','Sharp, localised pain when pressing on the rib joints.']],'front'],
  ['abdomen','Abdomen','Rectus abdominis, obliques','Core and abdominal wall soreness.',[['Core strain','Pain when twisting, sitting up or coughing.'],['Postnatal core weakness','Weak core muscles after pregnancy or surgery.']],'front'],
