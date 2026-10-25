@@ -56,14 +56,14 @@ const A = [
 const NS = 'http://www.w3.org/2000/svg';
 const svgNode = (tag, attrs = {}, children = []) => React.createElement(tag, attrs, ...children);
 
-function BodySvg({ view, selectedId, zoom = false, svgRef }) {
+function BodySvg({ view, selectedId, zoom = false, svgRef, onChoose, viewBox }) {
   const areas = A.filter((a) => !a[5] || a[5] === view);
-  return <svg ref={svgRef} className={zoom ? 'svg-body-guide zoom-svg' : 'svg-body-guide'} viewBox="0 0 200 400" role="group" aria-label={zoom ? 'Zoomed body area' : 'Body map'}>
+  return <svg ref={svgRef} className={zoom ? 'svg-body-guide zoom-svg' : 'svg-body-guide'} viewBox={zoom ? viewBox : '0 0 200 400'} role="group" aria-label={zoom ? 'Zoomed body area' : 'Body map'}>
     {[OUT, HEAD].flatMap((d, i) => [<path key={i+'r'} d={d} className="bg-base" />, <path key={i+'l'} d={d} className="bg-base" transform={MIR} />])}
     {HEADD.flatMap((d, i) => [<path key={i+'r'} d={d} className="bg-fibre" />, <path key={i+'l'} d={d} className="bg-fibre" transform={MIR} />])}
     {areas.map((a) => {
       const shape = (view === 'back' && SB[a[0]]) || S[a[0]];
-      return <g key={a[0]} className={'bg-area'+(selectedId === a[0] ? ' on' : '')} data-area={a[0]} data-clinical-name={a[2]} aria-label={a[1]} role={zoom ? undefined : 'button'} tabIndex={zoom ? -1 : 0} onClick={zoom ? undefined : () => {}}>{['m','d'].flatMap((part) => shape[part].flatMap((d, i) => [<path key={part+i+'r'} d={d} className={part === 'm' ? 'bg-muscle' : 'bg-fibre'} />, <path key={part+i+'l'} d={d} className={part === 'm' ? 'bg-muscle' : 'bg-fibre'} transform={MIR} />]))}</g>;
+      return <g key={a[0]} className={'bg-area'+(selectedId === a[0] ? ' on' : '')} data-area={a[0]} data-clinical-name={a[2]} aria-label={a[1]} role={zoom ? undefined : 'button'} tabIndex={zoom ? -1 : 0} onClick={zoom ? undefined : (event) => onChoose?.(a[0], event.currentTarget)} onKeyDown={zoom ? undefined : (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onChoose?.(a[0], event.currentTarget); } }}>{['m','d'].flatMap((part) => shape[part].flatMap((d, i) => [<path key={part+i+'r'} d={d} className={part === 'm' ? 'bg-muscle' : 'bg-fibre'} />, <path key={part+i+'l'} d={d} className={part === 'm' ? 'bg-muscle' : 'bg-fibre'} transform={MIR} />]))}</g>;
     })}
   </svg>;
 }
@@ -141,7 +141,7 @@ export default function BodyMap({ onFind }) {
       </div>
       <div className="bg-stage">
         <div className="bg-figure-card">
-          <BodySvg view={view} selectedId={selectedId} svgRef={svgRef} />
+          <BodySvg view={view} selectedId={selectedId} svgRef={svgRef} onChoose={chooseArea} />
         </div>
         <div className="bg-area-list" role="group" aria-label="Body areas">
           {visibleAreas.map((a) => <button key={a[0]} type="button" aria-current={selectedId === a[0] ? 'true' : undefined} onClick={(e) => chooseArea(a[0], e.currentTarget)}><span className="bg-dot" />{a[1]}</button>)}
@@ -152,7 +152,7 @@ export default function BodyMap({ onFind }) {
       <div className="bg-card-wrap">
         <button type="button" className="bg-close" ref={closeRef} onClick={close} aria-label="Close body area details">×</button>
         <div className="bg-dialog" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="bg-popup-title" tabIndex={-1}>
-          <div className="bg-zoom"><BodySvg view={view} selectedId={selectedId} zoom /></div>
+          <div className="bg-zoom"><BodySvg view={view} selectedId={selectedId} zoom viewBox={zoomBox} /></div>
           <div className="bg-info">
             <h3 id="bg-popup-title">{selected?.[1]}</h3>
             <p className="bg-note">Muscles and structures: {selected?.[2]}</p>
