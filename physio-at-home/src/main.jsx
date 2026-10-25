@@ -138,6 +138,7 @@ function App(){
   const [nearbyLocation, setNearbyLocation] = useState('');
   const [nearbyMessage, setNearbyMessage] = useState('');
   const [startModalOpen, setStartModalOpen] = useState(false);
+  const [startModalPain, setStartModalPain] = useState('');
   const [locationSearch, setLocationSearch] = useState('');
   const [areaSuggestionsOpen, setAreaSuggestionsOpen] = useState(false);
   const [locationMatches, setLocationMatches] = useState([]);
@@ -155,7 +156,7 @@ function App(){
     return [...unique.values()].sort((a, b) => a.localeCompare(b));
   }, [doctors]);
 
-  const openStartModal = () => { setStartModalOpen(true); setLocationSearch(''); setAreaSuggestionsOpen(false); };
+  const openStartModal = (detail = null) => { setStartModalPain(detail?.label ? `Looking for help with: ${detail.label.toLowerCase()} pain` : ''); setStartModalOpen(true); setLocationSearch(''); setAreaSuggestionsOpen(false); };
   const closeStartModal = () => { setStartModalOpen(false); setAreaSuggestionsOpen(false); };
   const selectServiceArea = (area) => {
     const normalizedArea = String(area || '').trim().toLocaleLowerCase();
@@ -302,7 +303,7 @@ function App(){
      <button className="start-close" onClick={closeStartModal} aria-label="Close Get started dialog"><X size={20}/></button>
      <span className="section-kicker">YOUR CARE, YOUR WAY</span>
      <h2 id="start-modal-title">How would you like to find a physio?</h2>
-     <p className="start-modal-intro">Choose the quickest way to find physiotherapy support in your area.</p>
+     {startModalPain && <p className="start-modal-intro" role="status">{startModalPain}</p>}<p className="start-modal-intro">Choose the quickest way to find physiotherapy support in your area.</p>
      <div className="start-options">
        <button className="start-option start-option-nearby" onClick={()=>{closeStartModal();startNearby();}}>
          <span className="start-option-icon"><MapPin size={25}/></span>
