@@ -112,3 +112,30 @@ test('authorized admin can switch between booking and therapist application queu
   await page.getByRole('button', { name: 'physiotherapists' }).click();
   await expect(page.getByText('No records in physiotherapists yet.')).toBeVisible();
 });
+
+test('admin requires a physiotherapist name before saving a new profile', async ({ page }) => {
+  await page.route(`${project}/rest/v1/admins**`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([{ user_id: user.id }]),
+    });
+  });
+  await page.route(`${project}/rest/v1/physiotherapists**`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+  });
+
+  let insertAttempted = false;
+  await page.route(`${project}/rest/v1/physiotherapists**`, async (route) => {
+    if (route.request().method() === 'POST') insertAttempted = true;
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+  });
+
+  await signInAsTestUser(page);
+  await expect(page.getByRole('heading', { name: 'Admin panel' })).toBeVisible({ timeout: 10_000 });
+  await page.getByRole('button', { name: 'Add physiotherapist' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
+
+  await expect(page.getByText('Physiotherapist name is required.')).toBeVisible();
+  expect(insertAttempted).toBe(false);
+});
