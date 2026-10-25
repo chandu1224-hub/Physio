@@ -37,3 +37,10 @@
 .ad-modal-body { padding: 16px 18px; overflow-y: auto; display: grid; gap: 12px; }
 .ad-check { display: flex !important; align-items: center; gap: 8px !important; }
 @media (prefers-reduced-motion: no-preference) { .ad-modal { animation: adIn .15s ease-out; } @keyframes adIn { from { transform: translateY(6px); opacity: 0; } } }
+
+.ad-location-panel { border: 1px solid #cfdad8; border-radius: 10px; background: #f7faf9; padding: 14px; display: grid; gap: 10px; }
+.ad-location-panel h3 { margin: 0; font-size: 1rem; }
+.ad-location-panel p { margin: 0; color: #5d6f6d; font-size: .85rem; line-height: 1.5; }
+.ad-location-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ad-location-panel input[type=text], .ad-location-panel input[type=number] { padding: 10px 12px; border: 1px solid #cfdad8; border-radius: 8px; font: inherit; width: 100%; box-sizing: border-box; }
+@media (max-width: 560px) { .ad-location-grid { grid-template-columns: 1fr; } }

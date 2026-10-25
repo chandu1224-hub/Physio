@@ -1,0 +1,43 @@
+name: Physio at Home browser E2E
+
+on:
+  pull_request:
+    paths:
+      - "physio-at-home/**"
+      - ".github/workflows/physio-at-home-e2e.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physio-at-home-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-e2e:
+    name: Chromium end-to-end tests (mocked backend)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: physio-at-home
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: physio-at-home/package-lock.json
+      - name: Install locked application dependencies
+        run: npm ci
+      - name: Install Playwright test runner
+        run: npm install --no-save @playwright/test
+      - name: Install Chromium and system dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Run browser E2E tests
+        env:
+          CI: "true"
+          VITE_SUPABASE_URL: https://e2e-test-project.supabase.co
+          VITE_SUPABASE_ANON_KEY: e2e-placeholder-anon-key
+        run: npx playwright test

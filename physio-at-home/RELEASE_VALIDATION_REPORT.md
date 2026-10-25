@@ -1,0 +1,80 @@
+# Release Validation Report
+
+**Checked:** 2026-10-25  
+**Repository branch:** `work/production-readiness`  
+**Latest fully CI-verified commit at report update:** `4b6137b8d88fecedb375e20666a56162aa74fb3d` (a subsequent local-date booking fix is committed separately and awaits its own CI result)  
+**Application:** `physio-at-home/`  
+**Production database project:** `physio-at-home` (`libbqaznznsfxxnclsmp`)  
+**Release status:** **NOT READY — do not merge or deploy**
+
+This report separates checks actually run from checks that remain unverified. No policies, grants, or functions were changed, and no production deployment was triggered. Four demo/test service locations were written to the live `physiotherapists` rows at the owner's explicit request; they are approximate Bengaluru test coordinates and must be replaced before real service launch. A temporary QA booking row was inserted via SQL, read back successfully, and deleted. That checks table write/read/schema only; it does NOT prove the website's anonymous REST insert or the authenticated admin browser view.
+
+## Checks actually run
+
+| Area | Result | Evidence / limitation |
+|---|---|---|
+| GitHub Actions production build | PASS | [CI run 40159980057](https://github.com/chandu1224-hub/Physio/actions/runs/40159980057) completed successfully for commit `987d865440eb3338a2d325998bcbca35bbcd3665`, including locked dependency install and production build. |
+| RLS enabled | PASS (metadata check) | RLS is enabled on `admins`, `booking_requests`, `physiotherapists`, and `therapist_applications`. RLS enabled alone does not prove the policies are correct. |
+| Effective table grants | PASS (metadata check, limited) | Anonymous has INSERT only on bookings and therapist applications, with no table-level SELECT/UPDATE/DELETE/TRUNCATE. Authenticated has CRUD table grants on the three application tables, but row-level policies restrict those operations to admins. |
+| Public physiotherapist column grants | PASS (metadata check) | `anon` can SELECT the fields used by the public card query; it cannot SELECT `slug`, timestamps, `contact_info`, `full_bio`, or exact `service_lat/service_lng`. Column-level grants were inspected directly. |
+| Nearby RPC — valid Bengaluru test point | PASS (limited) | `physios_near(12.9087, 77.4872)` returned one published provider at approximately 0.623 km. This is a technical test point, not confirmation that the provider approved the coordinates. |
+| Nearby RPC — distant test point | PASS (limited) | `physios_near(28.6139, 77.2090)` returned zero rows. |
+| Published provider test coordinates | PASS for test coverage only | All five published demo profiles now have Bengaluru-area coordinates and a 10 km radius. Four were populated with approximate test-only coordinates at the owner's request; they are not provider-verified service locations. Each profile was returned at distance 0 km when queried at its own saved coordinate. |
+| Booking table SQL smoke test | PASS, limited | Inserted temporary `QA Test Booking (delete)` row (`b39f3d9f-0e51-435f-a8c3-f745099bab95`), read back all booking fields, then deleted it. This bypasses the browser/anon Data API and admin session, so it is not live form-to-admin verification. |
+| Live website booking submission | BLOCKED / NOT VERIFIED | The execution environment cannot resolve the public Supabase or Netlify hostnames and no browser session against a verified deploy preview is available. The source form does call `.from('booking_requests').insert(...)`, but the actual public-site request and authenticated admin panel have not been exercised. |
+| Nearby RPC — NULL coordinates | PASS | Returned zero rows. |
+| Nearby RPC — invalid latitude (999) | PASS | Returned zero rows. |
+| Nearby RPC — invalid longitude (999) | PASS | Returned zero rows. |
+| Supabase Security Advisor | WARNINGS REMAIN | See Security findings below. |
+| Supabase performance advisor | INFO | One unused index warning: `booking_requests_created_idx`. Do not drop it solely from this finding; it may be new or workload-dependent. |
+| Browser E2E (mocked backend) | PASS, limited | [E2E run 40159979850](https://github.com/chandu1224-hub/Physio/actions/runs/40159979850) passed on commit `987d865440eb3338a2d325998bcbca35bbcd3665`. All 12 tests passed, including admin blank-name validation. Requests, auth, database responses, and WhatsApp handoff are mocked; this does not validate live Supabase or a deployed preview. |
+| Live branch preview / real-role browser flows | NOT RUN | No verified deploy-preview URL or isolated staging database is available through the current connected tools. The existing site URL has not been proven to serve this branch. |
+
+## Live database access review
+
+All four application tables have RLS enabled.
+
+Observed policies:
+- Public physiotherapist SELECT is granted to the `anon` role only, with `status = 'published'`.
+- Booking and therapist-application INSERT policies are granted to `anon` only, requiring `status = 'new'` and `consent = true`.
+- Authenticated table CRUD policies on physiotherapists, bookings, and applications require a matching `public.admins.user_id = auth.uid()`.
+- Admin table has a self-row SELECT policy for authenticated users.
+
+Observed grant details:
+- `anon`: INSERT on bookings and therapist applications; no table-level SELECT/UPDATE/DELETE/TRUNCATE on those tables. Public provider-card fields are granted through column-level SELECT privileges.
+- `authenticated`: CRUD table privileges on bookings, providers, and applications; SELECT on admins. RLS should restrict management rows to admin members, but direct role-specific adversarial API tests have not been performed.
+- Authenticated non-admin users may not read public provider cards or submit forms because the public SELECT/INSERT policies target `anon` only. The current UI does not appear to require non-admin user accounts, but this should be explicitly tested before adding any public sign-in feature.
+- Effective table grants and column grants were checked in PostgreSQL metadata; that is not equivalent to a full exploit test using real anon, non-admin, and admin API sessions.
+
+## Security Advisor findings
+
+1. **Public executable SECURITY DEFINER RPC** — `public.physios_near(double precision, double precision)` is callable by both `anon` and `authenticated`. The function currently has `search_path = pg_catalog`, schema-qualifies `public.physiotherapists`, filters to published providers with coordinates, respects service radius, and returns only provider ID plus distance. Public execution is required for the current nearby-search design, so do not revoke EXECUTE without replacing the feature. Owner decision (2026-10-25): keep this function unchanged for the test rollout while its functional checks pass; this accepts residual public-RPC abuse risk, not a claim that the warning is resolved.
+2. **Leaked-password protection disabled** — Supabase reports it is disabled and prior plan checks indicated enabling it requires a higher plan. Owner decision (2026-10-25): retain the current free-tier setup for now; record this as an accepted limitation for test rollout. It remains unresolved and should be reconsidered before broad public launch.
+3. **Unused index informational warning** — review query workload and index intent before deciding whether to retain or remove it.
+
+## Required tests before release
+
+- [x] Run browser-level end-to-end tests against a mocked backend for public provider-card rendering, booking consent/success/failure, and therapist-application consent/success/failure.
+- [x] Add/run mocked admin-route browser tests for confirmed non-admin denial, admin-membership lookup errors, and successful authorized-admin access to the manager. Latest CI run [40159980057](https://github.com/chandu1224-hub/Physio/actions/runs/40159980057) and browser E2E run [40159979850](https://github.com/chandu1224-hub/Physio/actions/runs/40159979850) both passed on `987d865440eb3338a2d325998bcbca35bbcd3665`.
+- [ ] Run browser-level end-to-end tests against a verified preview, including real configuration, anonymous REST booking INSERT, admin sign-in and booking visibility, search behavior, and WhatsApp handoff.
+- [ ] Test non-admin authenticated user denial for all admin CRUD actions, including direct Data API calls.
+- [ ] Test the real admin account: sign-in, list records, create/edit/delete provider, booking review, application review, sign-out/session expiry.
+- [ ] Test anonymous public SELECT cannot expose private fields or unpublished rows, and anonymous clients cannot SELECT/UPDATE/DELETE bookings or applications.
+- [ ] Test role-specific INSERT policy failures when consent is false or status is not `new`, without creating persistent test submissions in production.
+- [ ] Test mobile and desktop layouts, keyboard navigation, form labels/errors, console errors, failed network/API requests, and CSP/font/image loading on the branch preview.
+- [ ] Replace the four approximate demo coordinates and confirm service radius with each provider. All five currently have test coordinates, but only the original Kengeri coordinate existed before the owner's test-data instruction; none of the added locations should be treated as verified real coverage.
+- [ ] Verify each clinician's identity, registration/credentials, fees, ratings/reviews, availability, booking phone number, consent wording, privacy notice, and data-retention handling.
+- [ ] Re-run Security Advisor after any approved remediation and verify effective privileges/policies.
+- [ ] Confirm Netlify deploy-preview commit SHA equals the reviewed branch head.
+- [ ] Obtain an explicit release decision before merge/deployment.
+
+## Owner-provided business information / open legal details
+
+- Business name: **Physio at Home**.
+- No physical business address is maintained; do not invent one.
+- Business email will be supplied later.
+- Data-retention period, cancellation/refund policy, and jurisdiction/contact process still need owner decisions before publishing a final legal notice. The active `src/main.jsx` entry currently has no Privacy Policy/Terms routes; the root-level `main.jsx` legal template is not loaded by `index.html` and must not be mistaken for live legal pages.
+
+## Safety boundary
+
+The live Supabase project is the only connected project currently available; there is no isolated staging database. The SQL smoke-test row was removed after read-back. The execution environment cannot resolve `libbqaznznsfxxnclsmp.supabase.co` or the public Netlify hostname, so a real browser-to-Data-API test cannot be honestly marked complete from this session. Do not merge/deploy until a verified preview or browser-capable run confirms the anonymous booking insert and admin visibility. No service-role secret belongs in browser code.
