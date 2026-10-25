@@ -24,7 +24,7 @@ test('body guide switches views and opens an area details popup', async ({ page 
   await expect(guide.getByRole('button', { name: 'Back', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await guide.getByRole('button', { name: 'Front', exact: true }).click();
   await expect(guide.getByRole('button', { name: 'Front', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await guide.getByRole('button', { name: 'Neck', exact: true }).click();
+  await guide.getByRole('group', { name: 'Body map' }).getByRole('button', { name: 'Neck', exact: true }).click();
   const popup = page.getByRole('dialog', { name: 'Neck' });
   await expect(popup).toBeVisible();
   await expect(popup.getByText('Muscles and structures: Neck flexors, trapezius')).toBeVisible();
