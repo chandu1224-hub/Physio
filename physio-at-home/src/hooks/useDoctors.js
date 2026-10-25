@@ -14,8 +14,17 @@ export function normalizeDoctor(row, i) {
   specialties = specialties.map((s) => String(s).trim()).filter(Boolean);
   let experience = pick(row, "experience", "experience_years", "years_experience", "years");
   if (typeof experience === "number" || /^\d+$/.test(String(experience ?? ""))) experience = String(experience) + " years";
+  let serviceAreas = pick(row, "service_areas", "serviceAreas") || [];
+  if (typeof serviceAreas === "string") {
+    try { const parsed = JSON.parse(serviceAreas); serviceAreas = Array.isArray(parsed) ? parsed : serviceAreas.split(","); }
+    catch { serviceAreas = serviceAreas.split(","); }
+  }
+  if (!Array.isArray(serviceAreas)) serviceAreas = [serviceAreas];
+  serviceAreas = serviceAreas.map((area) => String(area).trim()).filter(Boolean);
   return {
     id: row.id ?? i, name, initials: pick(row, "initials") || initialsOf(name),
+    serviceLocation: String(pick(row, "service_location", "serviceLocation") || "").trim(),
+    serviceAreas,
     title: pick(row, "title", "designation", "role") || "Physiotherapist",
     degree: pick(row, "degree", "qualification", "qualifications") || "", experience: experience || "",
     rating: pick(row, "rating") == null ? "" : String(row.rating),
