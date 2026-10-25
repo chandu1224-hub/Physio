@@ -143,8 +143,11 @@ function App(){
   const [locationResultsOpen, setLocationResultsOpen] = useState(false);
 
   const serviceAreas = useMemo(() => {
-    const values = doctors.flatMap((doctor) => [doctor.serviceLocation || '', ...(Array.isArray(doctor.serviceAreas) ? doctor.serviceAreas : [])])
-      .map((value) => String(value || '').trim()).filter(Boolean);
+    // Present concise locality names in the dropdown, not full city/state/country strings.
+    const values = doctors.flatMap((doctor) => [
+      String(doctor.serviceLocation || '').split(',')[0],
+      ...(Array.isArray(doctor.serviceAreas) ? doctor.serviceAreas : [])
+    ]).map((value) => String(value || '').trim()).filter(Boolean);
     return [...new Map(values.map((value) => [value.toLocaleLowerCase(), value])).values()].sort((a, b) => a.localeCompare(b));
   }, [doctors]);
 
@@ -307,16 +310,24 @@ function App(){
          <div className="start-location-content">
            <label htmlFor="start-location-search">Search physio by location</label>
            <p>Type an area listed on a physiotherapist's profile.</p>
-           <div className="start-search-wrap">
-             <Search size={18}/>
-             <input id="start-location-search" value={locationSearch} onChange={e=>{setLocationSearch(e.target.value);setAreaSuggestionsOpen(true);}} onFocus={()=>setAreaSuggestionsOpen(true)} onKeyDown={e=>{if(e.key==='Escape')setAreaSuggestionsOpen(false);if(e.key==='Enter'&&locationSearch.trim()){e.preventDefault();const exact=serviceAreas.find(area=>area.toLocaleLowerCase()===locationSearch.trim().toLocaleLowerCase());const first=serviceAreas.find(area=>area.toLocaleLowerCase().includes(locationSearch.trim().toLocaleLowerCase()));if(exact||first)selectServiceArea(exact||first);}}} placeholder="Search an area or locality..." autoComplete="off" role="combobox" aria-autocomplete="list" aria-expanded={areaSuggestionsOpen&&Boolean(serviceAreas.length)} aria-controls="start-area-suggestions"/>
-             {locationSearch&&<button className="start-clear" onClick={()=>{setLocationSearch('');setAreaSuggestionsOpen(true);}} aria-label="Clear location search"><X size={15}/></button>}
-           </div>
-           {areaSuggestionsOpen&&<div className="start-suggestions" id="start-area-suggestions" role="listbox">
-             {serviceAreas.filter(area=>!locationSearch.trim()||area.toLocaleLowerCase().includes(locationSearch.trim().toLocaleLowerCase())).slice(0,8).map(area=><button type="button" role="option" aria-selected={false} key={area} onClick={()=>selectServiceArea(area)}><MapPin size={15}/><span>{area}</span><ArrowRight size={15}/></button>)}
-             {!serviceAreas.length&&<p className="start-no-areas">Area suggestions will appear when published physiotherapist profiles have service locations configured.</p>}
-             {!!serviceAreas.length&&!!locationSearch.trim()&&!serviceAreas.some(area=>area.toLocaleLowerCase().includes(locationSearch.trim().toLocaleLowerCase()))&&<p className="start-no-areas">No listed areas match yet. Try another spelling or choose from the list.</p>}
-           </div>}
+            <button
+              type="button"
+              className="start-search-wrap start-area-select"
+              id="start-location-search"
+              aria-haspopup="listbox"
+              aria-expanded={areaSuggestionsOpen}
+              aria-controls="start-area-suggestions"
+              onClick={() => setAreaSuggestionsOpen(open => !open)}
+              onKeyDown={e => { if (e.key === 'Escape') setAreaSuggestionsOpen(false); }}
+            >
+              <Search size={18}/>
+              <span className={locationSearch ? 'start-area-value' : 'start-area-placeholder'}>{locationSearch || 'Choose a service area...'}</span>
+              <ChevronDown size={17} className={areaSuggestionsOpen ? 'start-area-chevron is-open' : 'start-area-chevron'}/>
+            </button>
+            {areaSuggestionsOpen&&<div className="start-suggestions" id="start-area-suggestions" role="listbox" aria-label="Available physiotherapist service areas">
+              {serviceAreas.map(area=><button type="button" role="option" aria-selected={locationSearch === area} key={area} onClick={()=>selectServiceArea(area)}><MapPin size={15}/><span>{area}</span><ArrowRight size={15}/></button>)}
+              {!serviceAreas.length&&<p className="start-no-areas">No service areas are available yet. Please try finding a nearby physio.</p>}
+            </div>}
          </div>
        </div>
      </div>
