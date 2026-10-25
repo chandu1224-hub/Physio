@@ -1,0 +1,87 @@
+/* Physio at Home: clean white, black text, sky-blue highlights */
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel2: #f7fcff;
+  --mint: #38bdf8;
+  --mint2: #0284c7;
+  --ink: #111111;
+  --muted: #454545;
+  --line: #dceaf2;
+  --sky: #38bdf8;
+  --sky-deep: #0284c7;
+  --serif: 'Playfair Display', Georgia, serif;
+  color: #111111 !important;
+  background: #ffffff !important;
+}
+html, body, #root { background: #ffffff !important; color: #111111 !important; }
+body { color: #111111 !important; }
+.header { background: rgba(255,255,255,.96) !important; border-bottom: 1px solid #dceaf2 !important; }
+.brand, .brand-light, .nav-links, .nav-links a, .menu-toggle { color: #111111 !important; }
+.brand>span:last-child i, .brand i { color: #0284c7 !important; }
+.brand-mark { background: #38bdf8 !important; color: #07131a !important; }
+.nav-cta, .btn-primary, .search-btn, .final-cta .btn, .btn-dark, .whatsapp-float {
+  background: #38bdf8 !important; color: #07131a !important; border-color: #38bdf8 !important;
+}
+.nav-cta:hover, .btn-primary:hover, .search-btn:hover, .btn-dark:hover, .whatsapp-float:hover { background: #7dd3fc !important; }
+.hero, .care-section, .physios-section, .faq-section, .footer, .results-section, .search-overlay, .trust-strip, .how-section {
+  background: #ffffff !important;
+}
+.hero { background-image: none !important; }
+.hero h1, .section-intro h2, .results-head h2, .final-cta h2, .step-item h3,
+.condition-name, .doctor-card h3, .search-heading h2, .searching-box h2,
+.profile-modal h2, .booking-modal h2, .faq-item>button, .footer-col b,
+.footer-note p, .splash-name, .empty-state h3 { color: #111111 !important; }
+.hero h1 em, .section-intro h2 em, .quote-inner h2 em, .final-cta h2 em,
+.eyebrow, .section-kicker, .hero-proof strong, .condition-arrow, .step-num,
+.nav-links>a:not(.nav-cta):hover, .footer-col a:hover, .text-link:hover { color: #0284c7 !important; }
+.hero-sub, .section-intro p, .results-head p, .hero-proof span, .disclaimer,
+.condition-desc, .medical-note, .step-item p, .doctor-title, .doctor-degree,
+.doctor-meta, .doctor-card-bottom>div>small, .distance, .faq-item p,
+.footer-brand p, .footer-col, .footer-bottom, .searching-box>p { color: #454545 !important; }
+.hero-proof strong { color: #0284c7 !important; }
+.search-panel, .condition-card, .doctor-card, .profile-modal, .booking-modal,
+.home-base, .hero-card, .search-field, .empty-state, .faq-list, .profile-modal,
+.booking-modal, .searching-box, .search-overlay .searching-box {
+  background: #ffffff !important; color: #111111 !important; border-color: #dceaf2 !important;
+  box-shadow: 0 8px 28px rgba(2,132,199,.08) !important;
+}
+.search-panel { border: 1px solid #dceaf2 !important; }
+.search-field input, .search-field select, .booking-form input, .booking-form select,
+.booking-form label { background: #ffffff !important; color: #111111 !important; border-color: #cbdde8 !important; }
+.search-field>span, .booking-form input::placeholder, .search-field input::placeholder { color: #454545 !important; }
+.condition-card:hover, .doctor-card:hover, .outline-btn:hover { border-color: #38bdf8 !important; background: #f0faff !important; }
+.condition-symbol, .step-icon, .mini-icon, .home-base>span, .round-arrow,
+.doctor-availability, .tag-row span, .doctor-avatar i, .tiny-check {
+  background: #e0f5ff !important; color: #0369a1 !important; border-color: #bae6fd !important;
+}
+.doctor-availability, .tag-row span { color: #075985 !important; }
+.outline-btn { background: #ffffff !important; color: #111111 !important; border-color: #7dd3fc !important; }
+.text-link, .footer-wa, .footer-bottom a { color: #0284c7 !important; }
+.quote-section, .final-cta { background: #eaf8ff !important; color: #111111 !important; }
+.quote-inner p, .final-cta p { color: #454545 !important; }
+.quote-mark, .quote-art, .quote-art span { color: #0284c7 !important; }
+.footer-note em { color: #0284c7 !important; }
+.footer-bottom, .footer-top { border-color: #dceaf2 !important; }
+.search-field:focus-within, .booking-form input:focus, .booking-form select:focus {
+  border-color: #0284c7 !important; outline-color: #0284c7 !important;
+}
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 3px solid #38bdf8 !important; outline-offset: 3px;
+}
+.modal-backdrop { background: rgba(15, 23, 42, .45) !important; }
+.modal-close { background: #e0f5ff !important; color: #111111 !important; }
+.splash { background: #ffffff !important; color: #111111 !important; }
+.splash-line { background: #dceaf2 !important; }
+.splash-line span, .search-progress span { background: #38bdf8 !important; }
+.search-progress { background: #dceaf2 !important; }
+.search-ring { border-color: rgba(2,132,199,.35) !important; }
+.search-center { background: #e0f5ff !important; color: #111111 !important; }
+.orbit-doc { border-color: #ffffff !important; background: #e0f5ff !important; }
+.toast { background: #e0f5ff !important; color: #111111 !important; border: 1px solid #7dd3fc !important; }
+.toast button { color: #111111 !important; }
+.bg-condition-chips button, .approved-body-guide button { color: #111111; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition: none !important; }
+}
