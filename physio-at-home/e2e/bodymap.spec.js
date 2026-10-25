@@ -24,7 +24,12 @@ test('body guide switches views and opens an area details popup', async ({ page 
   await expect(guide.getByRole('button', { name: 'Back', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await guide.getByRole('button', { name: 'Front', exact: true }).click();
   await expect(guide.getByRole('button', { name: 'Front', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await guide.getByRole('group', { name: 'Body map' }).getByRole('button', { name: 'Neck', exact: true }).click();
+  const bodyMap = guide.getByRole('group', { name: 'Body map' });
+  const mapBounds = await bodyMap.boundingBox();
+  expect(mapBounds).not.toBeNull();
+  // Click inside the visible Neck muscle on the SVG (viewBox x=96, y=64),
+  // rather than the centre of the entire SVG group, which may be empty space.
+  await page.mouse.click(mapBounds.x + mapBounds.width * 0.48, mapBounds.y + mapBounds.height * 0.16);
   const popup = page.getByRole('dialog', { name: 'Neck' });
   await expect(popup).toBeVisible();
   await expect(popup.getByText('Muscles and structures: Neck flexors, trapezius')).toBeVisible();
