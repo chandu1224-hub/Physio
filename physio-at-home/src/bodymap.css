@@ -12,7 +12,7 @@
 .bg-base{pointer-events:none;fill:var(--muscle,#dce8ef);stroke:var(--edge,#a3b7c6);stroke-width:.8;stroke-linejoin:round}
 .bg-muscle{fill:var(--muscle,#dce8ef);stroke:var(--edge,#a3b7c6);stroke-width:.8;stroke-linejoin:round;transition:fill .12s}
 .bg-fibre{fill:none;stroke:var(--fib,#b4c7d5);stroke-width:.5;stroke-linecap:round;pointer-events:none}
-.bg-area{cursor:pointer;outline:none}
+.svg-body-guide{pointer-events:none}.svg-body-guide .bg-area{pointer-events:visiblePainted;cursor:pointer;outline:none}
 .bg-area:hover .bg-muscle{fill:#f2a3a5}
 .bg-area.on .bg-muscle,.bg-area:focus-visible .bg-muscle{fill:var(--hot,#e5383b);stroke:var(--hotedge,#a4161a)}
 .bg-area.on .bg-fibre,.bg-area:focus-visible .bg-fibre{stroke:var(--hotfib,#b3282b)}
