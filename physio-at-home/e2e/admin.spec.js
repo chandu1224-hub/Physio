@@ -121,9 +121,6 @@ test('admin requires a physiotherapist name before saving a new profile', async 
       body: JSON.stringify([{ user_id: user.id }]),
     });
   });
-  await page.route(`${project}/rest/v1/physiotherapists**`, async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
-  });
 
   let insertAttempted = false;
   await page.route(`${project}/rest/v1/physiotherapists**`, async (route) => {
@@ -134,8 +131,13 @@ test('admin requires a physiotherapist name before saving a new profile', async 
   await signInAsTestUser(page);
   await expect(page.getByRole('heading', { name: 'Admin panel' })).toBeVisible({ timeout: 10_000 });
   await page.getByRole('button', { name: 'Add physiotherapist' }).click();
+  await expect(page.getByRole('heading', { name: 'Add record' })).toBeVisible();
+
+  const nameInput = page.getByLabel('name', { exact: true });
+  await expect(nameInput).toBeVisible();
+  await nameInput.fill('');
   await page.getByRole('button', { name: 'Save changes' }).click();
 
-  await expect(page.getByText('Physiotherapist name is required.')).toBeVisible();
+  await expect(page.getByText(/Physiotherapist name is required/i)).toBeVisible();
   expect(insertAttempted).toBe(false);
 });
