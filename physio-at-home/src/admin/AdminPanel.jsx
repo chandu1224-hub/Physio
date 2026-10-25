@@ -170,19 +170,21 @@ function Editor({ table, columns, row, onClose, onSaved }) {
         setBusy(false);
         return setErr(error.message || "One or more fields have an invalid value.");
       }
-      if (table === "physiotherapists" && isNew) {
+      if (table === "physiotherapists") {
         if (!String(payload.name || "").trim()) {
           setBusy(false);
           return setErr("Physiotherapist name is required.");
         }
         payload.name = String(payload.name).trim();
-        payload.slug = String(payload.slug || payload.name.toLowerCase().trim()
-          .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")).trim();
-        if (!payload.slug) {
-          setBusy(false);
-          return setErr("Add a valid profile slug.");
+        if (isNew) {
+          payload.slug = String(payload.slug || payload.name.toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")).trim();
+          if (!payload.slug) {
+            setBusy(false);
+            return setErr("Add a valid profile slug.");
+          }
+          if (!payload.status) payload.status = "draft";
         }
-        if (!payload.status) payload.status = "draft";
       }
     }
     for (const field of NUMBER_FIELDS) {
@@ -303,7 +305,7 @@ function Editor({ table, columns, row, onClose, onSaved }) {
                   <input
                     type={typeof orig === "number" || NUMBER_FIELDS.has(c) ? "number" : "text"}
                     step="any"
-                    required={table === "physiotherapists" && isNew && c === "name"}
+                    required={table === "physiotherapists" && c === "name"}
                     value={toInput(values[c])}
                     onChange={(e) => setValues({ ...values, [c]: e.target.value })}
                   />
