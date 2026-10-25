@@ -4,6 +4,10 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # Public browser configuration only (publishable key, protected by Row Level Security). Never put a service-role key here.
+  VITE_SUPABASE_URL = "https://libbqaznznsfxxnclsmp.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "sb_publishable_-ndptxhysUA3j34qNODY7w_zmns3MWD"
+  VITE_SITE_URL = "https://physioathomes.netlify.app"
 
 # SPA fallback so /admin works on refresh
 [[redirects]]
