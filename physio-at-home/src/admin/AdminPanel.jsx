@@ -24,7 +24,7 @@ const EMPTY_PROFILE = {
   service_areas: [], languages: [], bio: "", full_bio: "", price: 0,
   availability: "", contact_info: "", rating: 0, reviews: 0, emoji: "🧑‍⚕️",
   color: "sage", photo_path: "", gallery_paths: [], display_order: 0,
-  featured: false, status: "draft", published_at: null, service_location: "Bengaluru, Karnataka, India",
+  featured: false, status: "draft", published_at: null, service_location: "",
   service_lat: null, service_lng: null, service_radius_km: 10
 };
 
@@ -216,6 +216,10 @@ function Editor({ table, columns, row, onClose, onSaved }) {
       return setErr("Display order cannot be negative.");
     }
     if (table === "physiotherapists") {
+      if (!String(payload.service_location || "").trim()) {
+        setBusy(false);
+        return setErr("Enter the physiotherapist's service location (for example, Indiranagar, Bengaluru, Karnataka). It appears in the Get started location dropdown.");
+      }
       const lat = payload.service_lat;
       const lng = payload.service_lng;
       const radius = payload.service_radius_km;
@@ -266,7 +270,7 @@ function Editor({ table, columns, row, onClose, onSaved }) {
             <>
               {table === "physiotherapists" && <section className="ad-location-panel">
                 <h3>Service location</h3>
-                <p>Set the physiotherapist’s service base. For this test rollout, use Bengaluru, Karnataka. Nearby search uses the saved coordinates and service radius.</p>
+                <p>Required. Enter the locality first, then city and state (for example, Indiranagar, Bengaluru, Karnataka). The locality is listed in the visitor-facing “Search physio by location” dropdown once the profile is published. Nearby search uses the saved coordinates and service radius.</p>
                 <label>Address or area
                   <input type="text" value={toInput(values.service_location)} onChange={(e) => setValues({ ...values, service_location: e.target.value })} placeholder="e.g. Indiranagar, Bengaluru, Karnataka" />
                 </label>
