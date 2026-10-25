@@ -3,30 +3,6 @@ import { AlertTriangle, ArrowRight, ChevronDown } from 'lucide-react';
 import { BODY_AREAS, BODY_VIEWS } from './bodyAreas';
 import './bodymap.css';
 
-// Simple figure built from basic shapes. Limbs and head are decoration; the highlighted
-// regions are the interactive body areas.
-function Figure() {
-  return (
-    <g className="bm-figure" aria-hidden="true">
-      <circle cx="100" cy="34" r="23" />
-      <rect x="90" y="54" width="20" height="22" rx="6" />
-      <rect x="62" y="76" width="76" height="124" rx="26" />
-      <rect x="40" y="84" width="20" height="78" rx="10" />
-      <rect x="140" y="84" width="20" height="78" rx="10" />
-      <rect x="34" y="162" width="18" height="74" rx="9" />
-      <rect x="148" y="162" width="18" height="74" rx="9" />
-      <ellipse cx="42" cy="246" rx="10" ry="15" />
-      <ellipse cx="158" cy="246" rx="10" ry="15" />
-      <rect x="64" y="196" width="34" height="108" rx="16" />
-      <rect x="102" y="196" width="34" height="108" rx="16" />
-      <rect x="66" y="300" width="30" height="86" rx="13" />
-      <rect x="104" y="300" width="30" height="86" rx="13" />
-      <ellipse cx="80" cy="398" rx="17" ry="9" />
-      <ellipse cx="120" cy="398" rx="17" ry="9" />
-    </g>
-  );
-}
-
 export default function BodyMap({ onFind }) {
   const [view, setView] = useState('front');
   const [selectedId, setSelectedId] = useState(null);
@@ -38,7 +14,10 @@ export default function BodyMap({ onFind }) {
   };
 
   const onRegionKey = (event, area) => {
-    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(area); }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      choose(area);
+    }
   };
 
   return (
@@ -59,27 +38,37 @@ export default function BodyMap({ onFind }) {
                 </button>
               ))}
             </div>
-            <svg className="bm-svg" viewBox="0 0 200 420" role="group" aria-label={`Body diagram, ${view} view`}>
-              <Figure />
-              {BODY_AREAS.filter((area) => area.views.includes(view)).map((area) => (
-                <g
-                  key={area.id}
-                  className={selectedId === area.id ? 'bm-region is-selected' : 'bm-region'}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={area.label}
-                  aria-pressed={selectedId === area.id}
-                  onClick={() => choose(area)}
-                  onKeyDown={(e) => onRegionKey(e, area)}
-                >
-                  {area.shapes.map((shape, i) => {
-                    const { t, ...attrs } = shape;
-                    return React.createElement(t, { key: i, ...attrs });
-                  })}
+
+            <div className="bm-image-stage">
+              <img
+                className="bm-anatomy-image"
+                src={view === 'front' ? '/images/anatomy-front.png' : '/images/anatomy-back.png'}
+                alt={view === 'front' ? 'Grey anatomical mannequin, front view' : 'Grey anatomical mannequin, back view'}
+                draggable="false"
+              />
+              <svg className="bm-svg" viewBox="0 0 200 300" role="group" aria-label={`Interactive body map, ${view} view`} preserveAspectRatio="none">
+                <g transform="scale(1 0.7142857)">
+                  {BODY_AREAS.filter((area) => area.views.includes(view)).map((area) => (
+                    <g
+                      key={area.id}
+                      className={selectedId === area.id ? 'bm-region is-selected' : 'bm-region'}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={area.label}
+                      aria-pressed={selectedId === area.id}
+                      onClick={() => choose(area)}
+                      onKeyDown={(e) => onRegionKey(e, area)}
+                    >
+                      {area.shapes.map((shape, i) => {
+                        const { t, ...attrs } = shape;
+                        return React.createElement(t, { key: i, ...attrs });
+                      })}
+                    </g>
+                  ))}
                 </g>
-              ))}
-            </svg>
-            <p className="bm-hint">Tap a highlighted area, or pick one from the list.</p>
+              </svg>
+            </div>
+            <p className="bm-hint">Tap a body area to highlight it in red, or choose one from the list.</p>
           </div>
 
           <div className="bm-detail">
