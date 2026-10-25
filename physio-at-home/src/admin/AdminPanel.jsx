@@ -303,6 +303,7 @@ function Editor({ table, columns, row, onClose, onSaved }) {
                   <input
                     type={typeof orig === "number" || NUMBER_FIELDS.has(c) ? "number" : "text"}
                     step="any"
+                    required={table === "physiotherapists" && isNew && c === "name"}
                     value={toInput(values[c])}
                     onChange={(e) => setValues({ ...values, [c]: e.target.value })}
                   />
