@@ -26,6 +26,16 @@ const provider = {
   service_radius_km: 10,
 };
 
+// Providers load asynchronously. Before they render, the only button whose name starts with
+// "Request" is the footer "Request a session" link, which opens the find-a-physio modal instead
+// of the booking form. Wait for a provider card and scope the click to it.
+async function openBookingForm(page) {
+  const card = page.locator('article.doctor-card').filter({ hasText: provider.name }).first();
+  await expect(card).toBeVisible({ timeout: 10_000 });
+  await card.getByRole('button', { name: /^Request/ }).click();
+  await expect(page.getByRole('heading', { name: 'Request a session.' })).toBeVisible();
+}
+
 test.beforeEach(async ({ page }) => {
   await page.route('https://e2e-test-project.supabase.co/rest/v1/physiotherapists**', async (route) => {
     if (route.request().method() === 'GET') {
@@ -70,7 +80,7 @@ test('booking saves the request before showing the success confirmation', async 
   });
 
   await page.goto('/');
-  await page.getByRole('button', { name: /^Request/ }).first().click();
+  await openBookingForm(page);
   await expect(page.getByRole('heading', { name: 'Request a session.' })).toBeVisible();
 
   await page.getByLabel('Your name').fill('E2E Test Patient');
@@ -100,7 +110,7 @@ test('booking form cannot submit without consent', async ({ page }) => {
   });
 
   await page.goto('/');
-  await page.getByRole('button', { name: /^Request/ }).first().click();
+  await openBookingForm(page);
   await page.getByLabel('Your name').fill('E2E Test Patient');
   await page.getByLabel('Phone number').fill('+91 98765 43210');
   await page.getByLabel('Area / address').fill('Test Area, Bengaluru');
@@ -122,7 +132,7 @@ test('booking failure displays an error and does not claim success', async ({ pa
   });
 
   await page.goto('/');
-  await page.getByRole('button', { name: /^Request/ }).first().click();
+  await openBookingForm(page);
   await page.getByLabel('Your name').fill('E2E Test Patient');
   await page.getByLabel('Phone number').fill('+91 98765 43210');
   await page.getByLabel('Area / address').fill('Test Area, Bengaluru');
