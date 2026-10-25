@@ -42,7 +42,7 @@ export default function BodyMap({ onFind }) {
             <div className="bm-image-stage">
               <img
                 className="bm-anatomy-image"
-                src={view === 'front' ? '/images/anatomy-front.png' : '/images/anatomy-back.png'}
+                src={view === 'front' ? '/images/anatomy-front.jpg' : '/images/anatomy-back.jpg'}
                 alt={view === 'front' ? 'Grey anatomical mannequin, front view' : 'Grey anatomical mannequin, back view'}
                 draggable="false"
               />
